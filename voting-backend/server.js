@@ -9,6 +9,9 @@ const voteRoutes = require('./routes/vote');
 const postRoutes = require('./routes/post');
 const electionRoutes = require('./routes/election');
 
+
+
+
 dotenv.config();
 const app = express();
 
@@ -22,7 +25,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads'),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
-app.use(multer({ storage }).any());
+app.use(multer({ storage }).any()); 
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -30,8 +33,8 @@ app.use('/api/vote', voteRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/election', electionRoutes);
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+// MongoDB Connection — **updated here**
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
