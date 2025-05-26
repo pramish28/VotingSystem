@@ -1,99 +1,86 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import FaceCapture from '../components/FaceCapture';
+import './VotingPage.css';
 
-const VotingPage = () => {
+function VotingPage() {
+  const [voterId, setVoterId] = useState('');
   const [candidates, setCandidates] = useState([]);
-  const [uniqueCode, setUniqueCode] = useState('');
-  const [faceDescriptor, setFaceDescriptor] = useState(null);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState('');
-  const [verified, setVerified] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const response = await api.get('/vote/candidates');
-        setCandidates(response.data);
+        const res = await api.get('/election/candidates');
+        setCandidates(res.data);
       } catch (err) {
-        setError('Failed to load candidates');
+        setError('Failed to fetch candidates');
       }
     };
     fetchCandidates();
   }, []);
 
-  const handleVerify = async () => {
-    if (!uniqueCode || !faceDescriptor) {
-      setError('Please enter unique code and capture face');
-      return;
-    }
+  const handleVote = async () => {
     try {
-      await api.post('/vote/verify', { uniqueCode, faceDescriptor: JSON.stringify(faceDescriptor) });
-      setVerified(true);
-      setError('');
+      const res = await api.post('/vote', { voterId, candidateId: selectedCandidate._id });
+      if (res.data.success) {
+        setShowConfirmation(true);
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Verification failed');
+      setError('Invalid voter ID or vote failed');
     }
   };
 
-  const handleVote = async (candidateId) => {
-    if (!verified) {
-      setError('Please verify your identity first');
-      return;
-    }
+  const confirmVote = async () => {
     try {
-      await api.post('/vote', { candidateId });
-      alert('Vote cast successfully');
-      setVerified(false);
-      setUniqueCode('');
-      setFaceDescriptor(null);
+      await api.post('/vote/confirm', { voterId, candidateId: selectedCandidate._id });
+      navigate('/results');
     } catch (err) {
-      setError(err.response?.data?.message || 'Voting failed');
+      setError('Vote confirmation failed');
     }
   };
+
+  if (showConfirmation) {
+    return (
+      <div className="confirmation-container">
+        <h2>Confirm Your Vote</h2>
+        <p>You have selected {selectedCandidate.name} for {selectedCandidate.vacancy}.</p>
+        <button onClick={confirmVote}>Proceed to Vote</button>
+        <button onClick={() => setShowConfirmation(false)}>Cancel</button>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl mb-4">Vote</h2>
-      {!verified ? (
-        <div className="mb-8">
-          <h3 className="text-xl mb-2">Verify Identity</h3>
+    <div className="voting-container">
+      <h2>Vote</h2>
+      <input
+        type="text"
+        placeholder="Enter Voter ID"
+        value={voterId}
+        onChange={(e) => setVoterId(e.target.value)}
+        required
+      />
+      <h3>Select a Candidate</h3>
+      {candidates.map((candidate) => (
+        <div key={candidate._id}>
           <input
-            type="text"
-            value={uniqueCode}
-            onChange={(e) => setUniqueCode(e.target.value)}
-            placeholder="Unique Code"
-            className="p-2 border mb-2 w-full"
+            type="radio"
+            name="candidate"
+            onChange={() => setSelectedCandidate(candidate)}
           />
-          <FaceCapture onCapture={setFaceDescriptor} />
-          <button
-            onClick={handleVerify}
-            className="bg-blue-500 text-white px-4 py-2 mt-4 rounded"
-          >
-            Verify
-          </button>
-          {error && <p className="text-red-500 mt-2">{error}</p>}
+          <span>{candidate.name} ({candidate.vacancy})</span>
         </div>
-      ) : (
-        <div>
-          <h3 className="text-xl mb-2">Select a Candidate</h3>
-          <ul>
-            {candidates.map((candidate) => (
-              <li key={candidate._id} className="mb-2">
-                <span>{candidate.name} - {candidate.description}</span>
-                <button
-                  onClick={() => handleVote(candidate._id)}
-                  className="bg-green-500 text-white px-4 py-2 ml-4 rounded"
-                >
-                  Vote
-                </button>
-              </li>
-            ))}
-          </ul>
-          {error && <p className="text-red-500 mt-2">{error}</p>}
-        </div>
-      )}
+      ))}
+      <button onClick={handleVote} disabled={!selectedCandidate || !voterId}>
+        Submit Vote
+      </button>
+      {error && <p className="error">{error}</p>}
     </div>
   );
-};
+}
 
 export default VotingPage;

@@ -1,111 +1,229 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../AuthContext';
 import api from '../api';
+import Post from '../components/Post';
+import CreatePost from '../components/CreatePost';
+import './AdminDashboard.css';
 
-const AdminDashboard = () => {
+function AdminDashboard() {
+  const { user, logout } = useContext(AuthContext);
+  const [pendingUsers, setPendingUsers] = useState([]);
+  const [verifiedUsers, setVerifiedUsers] = useState([]);
   const [candidates, setCandidates] = useState([]);
-  const [newCandidate, setNewCandidate] = useState({ name: '', description: '' });
-  const [electionStatus, setElectionStatus] = useState('inactive');
+  const [elections, setElections] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [newCandidate, setNewCandidate] = useState({ name: '', vacancy: '' });
+  const [newElection, setNewElection] = useState({ title: '', startDate: '', endDate: '' });
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError('');
       try {
-        const [candidatesRes, statusRes] = await Promise.all([
-          api.get('/admin/candidates'),
-          api.get('/admin/election-status'),
+        const [usersRes, candidatesRes, electionsRes, postsRes] = await Promise.all([
+          api.get('/auth/users'),
+          api.get('/election/candidates'),
+          api.get('/election'),
+          api.get('/post'),
         ]);
-        setCandidates(candidatesRes.data);
-        setElectionStatus(statusRes.data.status);
+
+        console.log('Users Response:', usersRes.data);
+        console.log('Candidates Response:', candidatesRes.data);
+        console.log('Elections Response:', electionsRes.data);
+        console.log('Posts Response:', postsRes.data);
+
+        setPendingUsers(usersRes.data.filter(u => !u.isVerified) || []);
+        setVerifiedUsers(usersRes.data.filter(u => u.isVerified) || []);
+        setCandidates(candidatesRes.data || []);
+        setElections(electionsRes.data || []);
+        setPosts(postsRes.data || []);
       } catch (err) {
-        setError('Failed to load data');
+        console.error('Fetch error:', err);
+        if (err.response?.status === 401) {
+          setError('Unauthorized: Please log in again.');
+          logout();
+        } else {
+          setError('Failed to load data. Please try again.');
+        }
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [logout]);
+
+  const handleVerify = async (userId) => {
+    try {
+      const res = await api.post(`/auth/verify/${userId}`);
+      setPendingUsers(pendingUsers.filter(u => u._id !== userId));
+      const user = pendingUsers.find(u => u._id === userId);
+      setVerifiedUsers([...verifiedUsers, { ...user, isVerified: true }]);
+      setError(res.data.message || 'User verified successfully.');
+    } catch (err) {
+      console.error('Verification error:', err);
+      setError(err.response?.data?.error || 'Failed to verify user.');
+    }
+  };
+
+  const handleApprovePost = async (postId) => {
+    try {
+      const res = await api.post(`/post/approve/${postId}`);
+      setPosts(posts.map(p => p._id === postId ? { ...p, isApproved: true } : p));
+      setError(res.data.message || 'Post approved successfully.');
+    } catch (err) {
+      console.error('Approve post error:', err);
+      setError(err.response?.data?.error || 'Failed to approve post.');
+    }
+  };
 
   const handleAddCandidate = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/admin/candidates', newCandidate);
-      const res = await api.get('/admin/candidates');
-      setCandidates(res.data);
-      setNewCandidate({ name: '', description: '' });
+      const res = await api.post('/election/candidates', newCandidate);
+      setCandidates([...candidates, res.data]);
+      setNewCandidate({ name: '', vacancy: '' });
     } catch (err) {
-      setError('Failed to add candidate');
+      console.error('Add candidate error:', err);
+      setError('Failed to add candidate.');
     }
   };
 
-  const handleDeleteCandidate = async (id) => {
+  const handleAddElection = async (e) => {
+    e.preventDefault();
     try {
-      await api.delete(`/admin/candidates/${id}`);
-      setCandidates(candidates.filter((c) => c._id !== id));
+      const res = await api.post('/election', newElection);
+      setElections([...elections, res.data]);
+      setNewElection({ title: '', startDate: '', endDate: '' });
     } catch (err) {
-      setError('Failed to delete candidate');
+      console.error('Add election error:', err);
+      setError('Failed to create election.');
     }
   };
 
-  const handleElectionToggle = async () => {
-    try {
-      const newStatus = electionStatus === 'active' ? 'inactive' : 'active';
-      await api.post('/admin/election', { status: newStatus });
-      setElectionStatus(newStatus);
-    } catch (err) {
-      setError('Failed to update election status');
-    }
+  const handleViewDocument = (url) => {
+    window.open(url, '_blank');
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl mb-4">Admin Dashboard</h2>
-      <div className="mb-8">
-        <h3 className="text-xl mb-2">Election Status: {electionStatus}</h3>
-        <button
-          onClick={handleElectionToggle}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          {electionStatus === 'active' ? 'End Election' : 'Start Election'}
-        </button>
+    <div className="admin-dashboard-container">
+      <div className="sidebar">
+        <h3>{user?.name || 'Admin'}</h3>
+        <img src={user?.photo} alt={`${user?.name}'s avatar`} className="profile-pic" />
+        <p>{user?.email}</p>
+        <button onClick={logout}>Logout</button>
       </div>
-      <div>
-        <h3 className="text-xl mb-2">Manage Candidates</h3>
-        <form onSubmit={handleAddCandidate} className="mb-4">
+      <div className="main-content">
+        <h2>Admin Dashboard</h2>
+        {loading && <p>Loading data...</p>}
+        {error && <p className="error">{error}</p>}
+        
+        <CreatePost />
+
+        <h3>Pending Users</h3>
+        {pendingUsers.length === 0 && !loading ? (
+          <p>No pending users to verify.</p>
+        ) : (
+          pendingUsers.map((user) => (
+            <div key={user._id} className="user-card">
+              <p>{user.name} ({user.email})</p>
+              <div className="document">
+                <img src={user.photo} alt={`${user.name}'s portrait`} width="100" onClick={() => handleViewDocument(user.photo)} />
+                <img src={user.semesterBill} alt={`${user.name}'s semester payment receipt`} width="100" onClick={() => handleViewDocument(user.semesterBill)} />
+                <img src={user.identityCard} alt={`${user.name}'s identification document`} width="100" onClick={() => handleViewDocument(user.identityCard)} />
+              </div>
+              <button onClick={() => handleVerify(user._id)} disabled={loading}>
+                Verify
+              </button>
+            </div>
+          ))
+        )}
+
+        <h3>Verified Users</h3>
+        {verifiedUsers.length === 0 && !loading ? (
+          <p>No verified users.</p>
+        ) : (
+          verifiedUsers.map((user) => (
+            <p key={user._id}>{user.name} ({user.email})</p>
+          ))
+        )}
+
+        <h3>Pending Post Approvals</h3>
+        {posts.filter(p => !p.isApproved).length === 0 && !loading ? (
+          <p>No posts pending approval.</p>
+        ) : (
+          posts.filter(p => !p.isApproved).map((post) => (
+            <div key={post._id} className="post-card">
+              <p>{post.userId?.name || 'Unknown User'}: {post.content}</p>
+              <button onClick={() => handleApprovePost(post._id)} disabled={loading}>
+                Approve
+              </button>
+            </div>
+          ))
+        )}
+
+        <h3>Manage Candidates</h3>
+        <form onSubmit={handleAddCandidate}>
           <input
             type="text"
+            placeholder="Candidate Name"
             value={newCandidate.name}
             onChange={(e) => setNewCandidate({ ...newCandidate, name: e.target.value })}
-            placeholder="Candidate Name"
-            className="p-2 border mr-2"
             required
           />
           <input
             type="text"
-            value={newCandidate.description}
-            onChange={(e) => setNewCandidate({ ...newCandidate, description: e.target.value })}
-            placeholder="Description"
-            className="p-2 border mr-2"
+            placeholder="Vacancy"
+            value={newCandidate.vacancy}
+            onChange={(e) => setNewCandidate({ ...newCandidate, vacancy: e.target.value })}
             required
           />
-          <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">
-            Add Candidate
-          </button>
+          <button type="submit" disabled={loading}>Add Candidate</button>
         </form>
-        <ul>
-          {candidates.map((candidate) => (
-            <li key={candidate._id} className="flex justify-between items-center mb-2">
-              <span>{candidate.name} - {candidate.description}</span>
-              <button
-                onClick={() => handleDeleteCandidate(candidate._id)}
-                className="bg-red-500 text-white px-2 py-1 rounded"
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
+        {candidates.length === 0 && !loading ? (
+          <p>No candidates added.</p>
+        ) : (
+          candidates.map((c) => (
+            <p key={c._id}>{c.name} ({c.vacancy})</p>
+          ))
+        )}
+
+        <h3>Create Election</h3>
+        <form onSubmit={handleAddElection}>
+          <input
+            type="text"
+            placeholder="Election Title"
+            value={newElection.title}
+            onChange={(e) => setNewElection({ ...newElection, title: e.target.value })}
+            required
+          />
+          <input
+            type="date"
+            value={newElection.startDate}
+            onChange={(e) => setNewElection({ ...newElection, startDate: e.target.value })}
+            required
+          />
+          <input
+            type="date"
+            value={newElection.endDate}
+            onChange={(e) => setNewElection({ ...newElection, endDate: e.target.value })}
+            required
+          />
+          <button type="submit" disabled={loading}>Create Election</button>
+        </form>
+
+        <h3>Approved Posts</h3>
+        {posts.filter(p => p.isApproved).length === 0 && !loading ? (
+          <p>No approved posts.</p>
+        ) : (
+          posts.filter(p => p.isApproved).map((post) => (
+            <Post key={post._id} post={post} />
+          ))
+        )}
       </div>
     </div>
   );
-};
+}
 
 export default AdminDashboard;

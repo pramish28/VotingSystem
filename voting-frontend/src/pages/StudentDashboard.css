@@ -1,0 +1,41 @@
+.dashboard-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.sidebar {
+  width: 250px;
+  padding: 20px;
+  border-right: 1px solid #ccc;
+}
+
+.profile-pic {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+}
+
+a, button {
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  text-decoration: none;
+  color: #4CAF50;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}

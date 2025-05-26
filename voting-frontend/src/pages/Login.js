@@ -1,58 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import { AuthContext } from '../AuthContext';
+import './Login.css';
 
-const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('student');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/auth/login', formData);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('role', response.data.role);
-      navigate(response.data.role === 'admin' ? '/admin-dashboard' : '/voting');
+      const user = await login(email, password, role);
+      navigate(user.role === 'admin' ? '/admin-dashboard' : '/student-dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.error || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl mb-4">Login</h2>
-      <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+    <div className="login-container">
+      <h2>Login</h2>
+      <form onSubmit={handleSubmit}>
+        <select value={role} onChange={(e) => setRole(e.target.value)} disabled={loading}>
+          <option value="student">Student</option>
+          <option value="admin">Admin</option>
+        </select>
         <input
           type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleInputChange}
           placeholder="Email"
-          className="w-full p-2 mb-2 border"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
+          disabled={loading}
         />
         <input
           type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleInputChange}
           placeholder="Password"
-          className="w-full p-2 mb-2 border"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
+          disabled={loading}
         />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-          Login
+        <button type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
         </button>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
       </form>
+      {error && <p className="error">{error}</p>}
+      <p>
+        No account? <a href="/register">Register</a>
+      </p>
     </div>
   );
-};
+}
 
 export default Login;

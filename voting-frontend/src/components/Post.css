@@ -1,0 +1,50 @@
+.post-container {
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.post-profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.post-image {
+  max-width: 100%;
+  margin-top: 10px;
+}
+
+.post-actions {
+  margin: 10px 0;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+input {
+  flex: 1;
+  padding: 5px;
+}

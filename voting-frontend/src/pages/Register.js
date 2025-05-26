@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import FaceCapture from '../components/FaceCapture';
 import api from '../api';
+import './Register.css';
 
-const Register = () => {
+function Register() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     photo: null,
-    idDocument: null,
-    admissionBill: null,
+    semesterBill: null,
+    identityCard: null,
   });
-  const [faceDescriptor, setFaceDescriptor] = useState(null);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [success, setSuccess] = useState('');
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value, files } = e.target;
     setFormData({
       ...formData,
@@ -26,101 +24,77 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!faceDescriptor) {
-      setError('Please capture your face');
-      return;
-    }
-
     const data = new FormData();
-    data.append('name', formData.name);
-    data.append('email', formData.email);
-    data.append('password', formData.password);
-    data.append('photo', formData.photo);
-    data.append('idDocument', formData.idDocument);
-    data.append('admissionBill', formData.admissionBill);
-    data.append('faceDescriptor', JSON.stringify(faceDescriptor));
+    Object.keys(formData).forEach((key) => {
+      data.append(key, formData[key]);
+    });
 
     try {
-      await api.post('/auth/register', data);
-      alert('Registration submitted. Await admin approval.');
-      navigate('/login');
+      await api.post('/auth/register', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setSuccess('Registration submitted. Await admin verification.');
+      setFormData({ name: '', email: '', password: '', photo: null, semesterBill: null, identityCard: null });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setError('Registration failed. Try again.');
     }
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl mb-4">Register</h2>
-      <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+    <div className="register-container">
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit}>
         <input
           type="text"
           name="name"
+          placeholder="Full Name"
           value={formData.name}
-          onChange={handleInputChange}
-          placeholder="Name"
-          className="w-full p-2 mb-2 border"
+          onChange={handleChange}
           required
         />
         <input
           type="email"
           name="email"
-          value={formData.email}
-          onChange={handleInputChange}
           placeholder="Email"
-          className="w-full p-2 mb-2 border"
+          value={formData.email}
+          onChange={handleChange}
           required
         />
         <input
           type="password"
           name="password"
-          value={formData.password}
-          onChange={handleInputChange}
           placeholder="Password"
-          className="w-full p-2 mb-2 border"
+          value={formData.password}
+          onChange={handleChange}
           required
         />
-        <label className="block mb-2">
-          Photo:
-          <input
-            type="file"
-            name="photo"
-            accept="image/*"
-            onChange={handleInputChange}
-            className="w-full"
-            required
-          />
-        </label>
-        <label className="block mb-2">
-          ID Document:
-          <input
-            type="file"
-            name="idDocument"
-            accept="image/*,application/pdf"
-            onChange={handleInputChange}
-            className="w-full"
-            required
-          />
-        </label>
-        <label className="block mb-2">
-          Admission Bill:
-          <input
-            type="file"
-            name="admissionBill"
-            accept="image/*,application/pdf"
-            onChange={handleInputChange}
-            className="w-full"
-            required
-          />
-        </label>
-        <FaceCapture onCapture={setFaceDescriptor} />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 mt-4 rounded">
-          Register
-        </button>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
+        <input
+          type="file"
+          name="photo"
+          accept=".jpg,.png"
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="file"
+          name="semesterBill"
+          accept=".jpg,.png"
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="file"
+          name="identityCard"
+          accept=".jpg,.png"
+          onChange={handleChange}
+          required
+        />
+        <button type="submit">Submit</button>
       </form>
+      {error && <p className="error">{error}</p>}
+      {success && <p className="success">{success}</p>}
     </div>
   );
-};
+}
 
 export default Register;
