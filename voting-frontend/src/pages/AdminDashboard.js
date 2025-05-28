@@ -16,17 +16,19 @@ function AdminDashboard() {
   const [newElection, setNewElection] = useState({ title: '', startDate: '', endDate: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(''); // Added for success messages
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError('');
+      setSuccess('');
       try {
         const [usersRes, candidatesRes, electionsRes, postsRes] = await Promise.all([
-          api.get('/auth/users'),
-          api.get('/election/candidates'),
-          api.get('/election'),
-          api.get('/post'),
+          api.get('/auth/users', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+          api.get('/election/candidates', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+          api.get('/election', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+          api.get('/post', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
         ]);
 
         console.log('Users Response:', usersRes.data);
@@ -56,11 +58,16 @@ function AdminDashboard() {
 
   const handleVerify = async (userId) => {
     try {
-      const res = await api.post(`/auth/verify/${userId}`);
+      const res = await api.post(`/auth/verify/${userId}`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       setPendingUsers(pendingUsers.filter(u => u._id !== userId));
       const user = pendingUsers.find(u => u._id === userId);
       setVerifiedUsers([...verifiedUsers, { ...user, isVerified: true }]);
-      setError(res.data.message || 'User verified successfully.');
+      setSuccess(res.data.message);
+      if (res.data.emailError) {
+        setError(`Email error: ${res.data.emailError}`);
+      }
     } catch (err) {
       console.error('Verification error:', err);
       setError(err.response?.data?.error || 'Failed to verify user.');
@@ -69,9 +76,11 @@ function AdminDashboard() {
 
   const handleApprovePost = async (postId) => {
     try {
-      const res = await api.post(`/post/approve/${postId}`);
+      const res = await api.post(`/post/approve/${postId}`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       setPosts(posts.map(p => p._id === postId ? { ...p, isApproved: true } : p));
-      setError(res.data.message || 'Post approved successfully.');
+      setSuccess(res.data.message || 'Post approved successfully.');
     } catch (err) {
       console.error('Approve post error:', err);
       setError(err.response?.data?.error || 'Failed to approve post.');
@@ -81,9 +90,12 @@ function AdminDashboard() {
   const handleAddCandidate = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/election/candidates', newCandidate);
+      const res = await api.post('/election/candidates', newCandidate, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       setCandidates([...candidates, res.data]);
       setNewCandidate({ name: '', vacancy: '' });
+      setSuccess('Candidate added successfully.');
     } catch (err) {
       console.error('Add candidate error:', err);
       setError('Failed to add candidate.');
@@ -93,9 +105,12 @@ function AdminDashboard() {
   const handleAddElection = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/election', newElection);
+      const res = await api.post('/election', newElection, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
       setElections([...elections, res.data]);
       setNewElection({ title: '', startDate: '', endDate: '' });
+      setSuccess('Election created successfully.');
     } catch (err) {
       console.error('Add election error:', err);
       setError('Failed to create election.');
@@ -118,6 +133,7 @@ function AdminDashboard() {
         <h2>Admin Dashboard</h2>
         {loading && <p>Loading data...</p>}
         {error && <p className="error">{error}</p>}
+        {success && <p className="success">{success}</p>}
         
         <CreatePost />
 
