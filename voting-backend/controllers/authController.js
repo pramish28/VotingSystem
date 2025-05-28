@@ -1,7 +1,5 @@
-// backend/controllers/authController.js
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
@@ -12,6 +10,8 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+const { sendNotification, sendVerificationCode } = require('../services/notificationService');
+const crypto = require('crypto');
 
 exports.register = async (req, res) => {
   console.log('Request body:', req.body);
@@ -20,12 +20,10 @@ exports.register = async (req, res) => {
   const { name, email, password, role = 'student', faculty, program, major } = req.body;
 
   try {
-    // Validate required fields
     if (!name || !email || !password || !faculty) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Validate required files
     if (
       !req.files ||
       !req.files.photo ||
@@ -35,11 +33,12 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'All file uploads (photo, semesterBill, identityCard) are required' });
     }
 
-    // Check if user exists
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ error: 'User already exists' });
     }
+
+    const voterId = `VOTE-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
     user = new User({
       name,
@@ -52,10 +51,16 @@ exports.register = async (req, res) => {
       photo: req.files.photo[0].path,
       semesterBill: req.files.semesterBill[0].path,
       identityCard: req.files.identityCard[0].path,
+      voterId,
     });
 
     await user.save();
-    res.status(201).json({ message: 'User registered. Awaiting verification.' });
+
+    const message = `Your Voter ID is: ${voterId}`;
+    await sendNotification(user._id, message);
+    console.log(`Voter ID sent to ${email}`);
+
+    res.status(201).json({ message: 'User registered, Voter ID sent to email. Awaiting verification.' });
   } catch (err) {
     console.error('Register error:', err);
     if (err.name === 'MulterError') {
@@ -105,9 +110,23 @@ exports.verifyUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const verificationCode = `VER-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
     user.isVerified = true;
+    user.verificationCode = verificationCode;
     await user.save();
-    res.json({ message: 'User verified' });
+
+    try {
+      await sendVerificationCode(user.email, verificationCode);
+      console.log(`Verification code sent to ${user.email}`);
+      res.json({ message: 'User verified, verification code sent to email' });
+    } catch (emailErr) {
+      console.error('Email sending failed:', emailErr);
+      res.status(200).json({ 
+        message: 'User verified, but failed to send verification email',
+        emailError: emailErr.message 
+      });
+    }
   } catch (err) {
     console.error('Verify user error:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
