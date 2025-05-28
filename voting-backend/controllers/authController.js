@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const User = require('../models/User');
-const Notification = require('../models/notification');
+const Notification = require('../models/Notification');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',

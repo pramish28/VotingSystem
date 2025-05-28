@@ -124,12 +124,13 @@ function Register() {
 
   const selectedPrograms = formData.faculty ? Object.keys(faculties[formData.faculty].programs) : [];
   const selectedMajors =
-    formData.faculty && formData.program ? faculties[formData.faculty].programs[formData.program] : [];
+formData.faculty && formData.program ? faculties[formData.faculty].programs[formData.program] : [];
 
   return (
     <div className="register-container">
       <h2>Register</h2>
       <form onSubmit={handleSubmit} encType="multipart/form-data">
+      
         <input
           type="text"
           name="name"
@@ -139,6 +140,7 @@ function Register() {
           required
         />
 
+        
         <input
           type="email"
           name="email"
@@ -156,40 +158,75 @@ function Register() {
           onChange={handleChange}
           required
         />
+{/* Faculty Dropdown */}
+<div className="dropdown-container">
+  {/* <label className="dropdown-label">Faculty</label> */}
+  <div style={{position: 'relative'}}>
+    <select 
+      name="faculty" 
+      value={formData.faculty} 
+      onChange={handleChange} 
+      required
+      className="modern-dropdown faculty"
+    >
+      <option value="">Select Faculty</option>
+      {Object.keys(faculties).map((faculty) => (
+        <option key={faculty} value={faculty}>
+          {faculty}
+        </option>
+      ))}
+    </select>
+    <div className="dropdown-arrow"></div>
+  </div>
+</div>
 
-        {/* Faculty Dropdown */}
-        <select name="faculty" value={formData.faculty} onChange={handleChange} required>
-          <option value="">Select Faculty</option>
-          {Object.keys(faculties).map((faculty) => (
-            <option key={faculty} value={faculty}>
-              {faculty}
-            </option>
-          ))}
-        </select>
+{/* Program Dropdown */}
+{selectedPrograms.length > 0 && (
+  <div className="dropdown-container dropdown-appear">
+    {/* <label className="dropdown-label">Program</label> */}
+    <div style={{position: 'relative'}}>
+      <select 
+        name="program" 
+        value={formData.program} 
+        onChange={handleChange} 
+        required
+        className="modern-dropdown program"
+      >
+        <option value="">Select Program</option>
+        {selectedPrograms.map((program) => (
+          <option key={program} value={program}>
+            {program}
+          </option>
+        ))}
+      </select>
+      <div className="dropdown-arrow"></div>
+    </div>
+  </div>
+)}
 
-        {/* Program Dropdown */}
-        {selectedPrograms.length > 0 && (
-          <select name="program" value={formData.program} onChange={handleChange} required>
-            <option value="">Select Program</option>
-            {selectedPrograms.map((program) => (
-              <option key={program} value={program}>
-                {program}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {/* Major Dropdown */}
-        {selectedMajors.length > 0 && selectedMajors[0] !== 'None' && (
-          <select name="major" value={formData.major} onChange={handleChange} required>
-            <option value="">Select Major</option>
-            {selectedMajors.map((major) => (
-              <option key={major} value={major}>
-                {major}
-              </option>
-            ))}
-          </select>
-        )}
+{/* Major Dropdown */}
+{selectedMajors.length > 0 && selectedMajors[0] !== 'None' && (
+  <div className="dropdown-container dropdown-appear">
+    {/* <label className="dropdown-label">Major</label> */}
+    <div style={{position: 'relative'}}>
+      <select 
+        name="major" 
+        value={formData.major} 
+        onChange={handleChange} 
+        required
+        className="modern-dropdown major"
+      >
+        <option value="">Select Major</option>
+        {selectedMajors.map((major) => (
+          <option key={major} value={major}>
+            {major}
+          </option>
+        ))}
+      </select>
+      <div className="dropdown-arrow"></div>
+    </div>
+  </div>
+)}
 
         {/* Photo Upload */}
         <div className="file-input-wrapper">
