@@ -99,7 +99,7 @@ button:hover {
 /* Sleek, modern file upload button */
 .custom-file-upload {
   display: inline-block;
-  padding: 8px 16px;
+  padding: 12px 20px;
   background: #e3f2fd; /* soft pastel blue */
   color: #1976d2; /* nice blue text */
   font-weight: 600;
@@ -111,6 +111,9 @@ button:hover {
   font-size: 14px;
   transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
   border: 1.5px solid #90caf9;
+  width: 200px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .custom-file-upload:hover {
@@ -123,7 +126,7 @@ button:hover {
 .file-input-wrapper {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 0px;
 }
 
 /* File name text aligned right */
@@ -137,5 +140,54 @@ button:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/*css for faculty selection*/
+
+.dropdown-container {
+  position: relative;
+  margin-bottom:0px;
+  font-family: inherit;
+}
+/* Update the modern-dropdown class to match your input styling */
+.modern-dropdown {
+  width: 100%;
+  padding: 14px 16px;  /* Changed from 0.75rem 1rem to match inputs */
+  padding-right: 2.5rem;
+  font-size: 16px;  /* Changed from 1rem to 16px to match inputs */
+  color: #222;  /* Changed from #374151 to #222 to match inputs */
+  background-color: #f9fbff;  /* Changed from #ffffff to #f9fbff to match inputs */
+  border: 2px solid #a3bffa;  /* Changed from #e5e7eb to #a3bffa to match inputs */
+  border-radius: 10px;  /* Changed from 0.75rem to 10px to match inputs */
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  font-family: inherit;  /* This ensures it uses the same font as inputs */
+}
+
+/* Update hover state to match input style */
+.modern-dropdown:hover {
+  border-color: #a3bffa;  /* Keep consistent with input border */
+}
+
+/* Update focus states to match your input focus style */
+.modern-dropdown:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 8px #0056b3cc;
+  outline: none;
+  background-color: #ffffff;
+}
+
+/* Remove the individual focus colors and use the same for all */
+.modern-dropdown.faculty:focus,
+.modern-dropdown.program:focus,
+.modern-dropdown.major:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 8px #0056b3cc;
+  background-color: #ffffff;
+}
+
 
 
