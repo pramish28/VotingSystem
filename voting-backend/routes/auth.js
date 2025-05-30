@@ -1,27 +1,18 @@
+// routes/auth.js
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const authMiddleware = require('../middleware/auth');
-const upload = require('../middleware/upload');
 
 // Debug logs to verify imports
 console.log('authController:', authController);
 console.log('authMiddleware:', authMiddleware);
-console.log('upload:', upload);
 
 // Register route
-router.post(
-  '/register',
-  upload.fields([
-    { name: 'photo', maxCount: 1 },
-    { name: 'semesterBill', maxCount: 1 },
-    { name: 'identityCard', maxCount: 1 },
-  ]),
-  (req, res, next) => {
-    console.log('Register route hit');
-    authController.register(req, res, next);
-  }
-);
+router.post('/register', (req, res, next) => {
+  console.log('Register route hit');
+  authController.register(req, res, next);
+});
 
 // Other routes
 router.post('/login', (req, res, next) => {

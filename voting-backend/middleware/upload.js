@@ -1,44 +1,30 @@
-// backend/middleware/upload.js
+// middleware/upload.js
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../Uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, 'Uploads/');
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
-// File filter for allowed types
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only JPG, JPEG, and PNG files are allowed'), false);
-  }
-};
-
-// Multer config
-const upload = multer({
+module.exports = multer({
   storage,
-  fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 3, // Max 3 files
-    fields: 10, // Max 10 fields
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('Only .jpg, .jpeg, and .png files are allowed'));
   },
-});
-
-console.log('Exporting upload:', upload);
-module.exports = upload;
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+}).fields([
+  { name: 'photo', maxCount: 1 },
+  { name: 'semesterBill', maxCount: 1 },
+  { name: 'identityCard', maxCount: 1 },
+]);

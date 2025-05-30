@@ -16,7 +16,7 @@ function AdminDashboard() {
   const [newElection, setNewElection] = useState({ title: '', startDate: '', endDate: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(''); // Added for success messages
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,17 +25,11 @@ function AdminDashboard() {
       setSuccess('');
       try {
         const [usersRes, candidatesRes, electionsRes, postsRes] = await Promise.all([
-          api.get('/auth/users', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-          api.get('/election/candidates', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-          api.get('/election', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-          api.get('/post', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+          api.get('/api/auth/users'),
+          api.get('/api/election/candidates'),
+          api.get('/api/election'),
+          api.get('/api/post'),
         ]);
-
-        console.log('Users Response:', usersRes.data);
-        console.log('Candidates Response:', candidatesRes.data);
-        console.log('Elections Response:', electionsRes.data);
-        console.log('Posts Response:', postsRes.data);
-
         setPendingUsers(usersRes.data.filter(u => !u.isVerified) || []);
         setVerifiedUsers(usersRes.data.filter(u => u.isVerified) || []);
         setCandidates(candidatesRes.data || []);
@@ -43,24 +37,17 @@ function AdminDashboard() {
         setPosts(postsRes.data || []);
       } catch (err) {
         console.error('Fetch error:', err);
-        if (err.response?.status === 401) {
-          setError('Unauthorized: Please log in again.');
-          logout();
-        } else {
-          setError('Failed to load data. Please try again.');
-        }
+        setError('Failed to load data. Please try again.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [logout]);
+  }, []);
 
   const handleVerify = async (userId) => {
     try {
-      const res = await api.post(`/auth/verify/${userId}`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      const res = await api.post(`/api/auth/verify/${userId}`);
       setPendingUsers(pendingUsers.filter(u => u._id !== userId));
       const user = pendingUsers.find(u => u._id === userId);
       setVerifiedUsers([...verifiedUsers, { ...user, isVerified: true }]);
@@ -69,20 +56,16 @@ function AdminDashboard() {
         setError(`Email error: ${res.data.emailError}`);
       }
     } catch (err) {
-      console.error('Verification error:', err);
       setError(err.response?.data?.error || 'Failed to verify user.');
     }
   };
 
   const handleApprovePost = async (postId) => {
     try {
-      const res = await api.post(`/post/approve/${postId}`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      const res = await api.post(`/api/post/approve/${postId}`);
       setPosts(posts.map(p => p._id === postId ? { ...p, isApproved: true } : p));
       setSuccess(res.data.message || 'Post approved successfully.');
     } catch (err) {
-      console.error('Approve post error:', err);
       setError(err.response?.data?.error || 'Failed to approve post.');
     }
   };
@@ -90,14 +73,11 @@ function AdminDashboard() {
   const handleAddCandidate = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/election/candidates', newCandidate, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      const res = await api.post('/api/election/candidates', newCandidate);
       setCandidates([...candidates, res.data]);
       setNewCandidate({ name: '', vacancy: '' });
       setSuccess('Candidate added successfully.');
     } catch (err) {
-      console.error('Add candidate error:', err);
       setError('Failed to add candidate.');
     }
   };
@@ -105,14 +85,11 @@ function AdminDashboard() {
   const handleAddElection = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/election', newElection, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      const res = await api.post('/api/election', newElection);
       setElections([...elections, res.data]);
       setNewElection({ title: '', startDate: '', endDate: '' });
       setSuccess('Election created successfully.');
     } catch (err) {
-      console.error('Add election error:', err);
       setError('Failed to create election.');
     }
   };
@@ -121,12 +98,16 @@ function AdminDashboard() {
     window.open(url, '_blank');
   };
 
+  if (!user || user.role !== 'admin') {
+    return <div>Access denied</div>;
+  }
+
   return (
     <div className="admin-dashboard-container">
       <div className="sidebar">
-        <h3>{user?.name || 'Admin'}</h3>
-        <img src={user?.photo} alt={`${user?.name}'s avatar`} className="profile-pic" />
-        <p>{user?.email}</p>
+        <h3>{user.name}</h3>
+        <img src={user.photo} alt="Avatar" className="profile-pic" />
+        <p>{user.email}</p>
         <button onClick={logout}>Logout</button>
       </div>
       <div className="main-content">
@@ -145,9 +126,9 @@ function AdminDashboard() {
             <div key={user._id} className="user-card">
               <p>{user.name} ({user.email})</p>
               <div className="document">
-                <img src={user.photo} alt={`${user.name}'s portrait`} width="100" onClick={() => handleViewDocument(user.photo)} />
-                <img src={user.semesterBill} alt={`${user.name}'s semester payment receipt`} width="100" onClick={() => handleViewDocument(user.semesterBill)} />
-                <img src={user.identityCard} alt={`${user.name}'s identification document`} width="100" onClick={() => handleViewDocument(user.identityCard)} />
+                <img src={user.photo} alt="Portrait" width="100" onClick={() => handleViewDocument(user.photo)} />
+                <img src={user.semesterBill} alt="Semester Bill" width="100" onClick={() => handleViewDocument(user.semesterBill)} />
+                <img src={user.identityCard} alt="Identity Card" width="100" onClick={() => handleViewDocument(user.identityCard)} />
               </div>
               <button onClick={() => handleVerify(user._id)} disabled={loading}>
                 Verify
@@ -171,7 +152,7 @@ function AdminDashboard() {
         ) : (
           posts.filter(p => !p.isApproved).map((post) => (
             <div key={post._id} className="post-card">
-              <p>{post.userId?.name || 'Unknown User'}: {post.content}</p>
+              <p>{post.userId?.name || 'Unknown'}: {post.content}</p>
               <button onClick={() => handleApprovePost(post._id)} disabled={loading}>
                 Approve
               </button>

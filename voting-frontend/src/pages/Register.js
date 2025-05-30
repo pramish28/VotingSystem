@@ -1,36 +1,38 @@
-// frontend/src/pages/Register.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './Register.css';
 
-const faculties = {
-  Science: {
-    programs: {
+const facultyOptions = {
+  Bachelor: {
+    Science: {
       'B.Sc. CSIT': ['None'],
       'B.Sc. Microbiology': ['None'],
       'B.Sc. Environment Science': ['None'],
     },
-  },
-  Management: {
-    programs: {
+    Management: {
       BBS: ['Finance', 'Marketing', 'Accounting'],
     },
-  },
-  Humanities: {
-    programs: {
+    Humanities: {
       BSW: ['None'],
       BA: ['English', 'Sociology', 'Population'],
     },
-  },
-  Education: {
-    programs: {
+    Education: {
       'B.Ed.': ['Math', 'English', 'Health', 'Nepali'],
     },
-  },
-  Law: {
-    programs: {
+    Law: {
       LLB: ['None'],
+    },
+  },
+  Master: {
+    Management: {
+      MBS: ['Finance', 'Marketing', 'Accounting'],
+    },
+    Humanities: {
+      MA: ['English', 'Sociology'],
+    },
+    Education: {
+      'M.Ed.': ['Math', 'English', 'Health'],
     },
   },
 };
@@ -40,6 +42,7 @@ function Register() {
     name: '',
     email: '',
     password: '',
+    degree: '',
     faculty: '',
     program: '',
     major: '',
@@ -54,185 +57,200 @@ function Register() {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: files ? files[0] : value,
-    });
-
-    // Reset program and major if faculty changes
-    if (name === 'faculty') {
-      setFormData((prev) => ({
-        ...prev,
-        program: '',
-        major: '',
-      }));
-    }
-
-    // Reset major if program changes
-    if (name === 'program') {
-      setFormData((prev) => ({
-        ...prev,
-        major: '',
-      }));
-    }
+      ...(name === 'degree' && { faculty: '', program: '', major: '' }),
+      ...(name === 'faculty' && { program: '', major: '' }),
+      ...(name === 'program' && { major: '' }),
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validate required fields before submitting
-    if (!formData.name || !formData.email || !formData.password || !formData.faculty) {
-      setError('Please fill all required fields');
+    setError('');
+    setSuccess('');
+
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.password ||
+      !formData.degree ||
+      !formData.faculty ||
+      !formData.program
+    ) {
+      setError('Please fill all required fields.');
       return;
     }
     if (!formData.photo || !formData.semesterBill || !formData.identityCard) {
-      setError('Please upload all required files');
+      setError('Please upload all required files.');
       return;
     }
 
-    const data = new FormData();
-    Object.keys(formData).forEach((key) => {
-      if (formData[key]) {
-        data.append(key, formData[key]);
-      }
+    const textData = {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      degree: formData.degree,
+      faculty: formData.faculty,
+      program: formData.program,
+      major: formData.major || '',
+    };
+
+    const fileData = new FormData();
+    fileData.append('photo', formData.photo);
+    fileData.append('semesterBill', formData.semesterBill);
+    fileData.append('identityCard', formData.identityCard);
+    fileData.append('data', JSON.stringify(textData));
+
+    console.log('Register payload:', {
+      textData,
+      files: {
+        photo: formData.photo?.name,
+        semesterBill: formData.semesterBill?.name,
+        identityCard: formData.identityCard?.name,
+      },
     });
 
     try {
-      await api.post('/auth/register', data);
-      setSuccess('Registration submitted. Redirecting to login page in 5 seconds...');
-      setError('');
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        faculty: '',
-        program: '',
-        major: '',
-        photo: null,
-        semesterBill: null,
-        identityCard: null,
+      const response = await api.post('/api/auth/register', fileData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      setTimeout(() => {
-        navigate('/login');
-      }, 5000);
+      console.log('Register response:', response.data);
+      setSuccess('Registration successful. Redirecting to login...');
+      setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      console.error('Registration error:', err.response?.data || err);
-      setSuccess('');
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      console.error('Register error:', err.response?.data || err);
+      setError(err.response?.data?.error || 'Registration failed.');
     }
   };
 
-  const selectedPrograms = formData.faculty ? Object.keys(faculties[formData.faculty].programs) : [];
-  const selectedMajors =
-formData.faculty && formData.program ? faculties[formData.faculty].programs[formData.program] : [];
+  const availableFaculties = formData.degree ? Object.keys(facultyOptions[formData.degree]) : [];
+  const availablePrograms =
+    formData.degree && formData.faculty
+      ? Object.keys(facultyOptions[formData.degree][formData.faculty])
+      : [];
+  const availableMajors =
+    formData.degree && formData.faculty && formData.program
+      ? facultyOptions[formData.degree][formData.faculty][formData.program]
+      : [];
 
   return (
     <div className="register-container">
       <h2>Register</h2>
       <form onSubmit={handleSubmit} encType="multipart/form-data">
-      
-        <input
-          type="text"
-          name="name"
-          placeholder="Full Name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-
-        
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
-{/* Faculty Dropdown */}
-<div className="dropdown-container">
-  {/* <label className="dropdown-label">Faculty</label> */}
-  <div style={{position: 'relative'}}>
-    <select 
-      name="faculty" 
-      value={formData.faculty} 
-      onChange={handleChange} 
-      required
-      className="modern-dropdown faculty"
-    >
-      <option value="">Select Faculty</option>
-      {Object.keys(faculties).map((faculty) => (
-        <option key={faculty} value={faculty}>
-          {faculty}
-        </option>
-      ))}
-    </select>
-    <div className="dropdown-arrow"></div>
-  </div>
-</div>
-
-{/* Program Dropdown */}
-{selectedPrograms.length > 0 && (
-  <div className="dropdown-container dropdown-appear">
-    {/* <label className="dropdown-label">Program</label> */}
-    <div style={{position: 'relative'}}>
-      <select 
-        name="program" 
-        value={formData.program} 
-        onChange={handleChange} 
-        required
-        className="modern-dropdown program"
-      >
-        <option value="">Select Program</option>
-        {selectedPrograms.map((program) => (
-          <option key={program} value={program}>
-            {program}
-          </option>
-        ))}
-      </select>
-      <div className="dropdown-arrow"></div>
-    </div>
-  </div>
-)}
-
-{/* Major Dropdown */}
-{selectedMajors.length > 0 && selectedMajors[0] !== 'None' && (
-  <div className="dropdown-container dropdown-appear">
-    {/* <label className="dropdown-label">Major</label> */}
-    <div style={{position: 'relative'}}>
-      <select 
-        name="major" 
-        value={formData.major} 
-        onChange={handleChange} 
-        required
-        className="modern-dropdown major"
-      >
-        <option value="">Select Major</option>
-        {selectedMajors.map((major) => (
-          <option key={major} value={major}>
-            {major}
-          </option>
-        ))}
-      </select>
-      <div className="dropdown-arrow"></div>
-    </div>
-  </div>
-)}
-
-        {/* Photo Upload */}
-        <div className="file-input-wrapper">
-          <label className="custom-file-upload" htmlFor="photo">
-            Upload Your Photo
-          </label>
+        <div className="input-container">
+          <label htmlFor="name">Full Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Full Name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="input-container">
+          <label htmlFor="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="input-container">
+          <label htmlFor="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="dropdown-container">
+          <label htmlFor="degree">Degree Level</label>
+          <select
+            id="degree"
+            name="degree"
+            value={formData.degree}
+            onChange={handleChange}
+            required
+            className="modern-dropdown"
+          >
+            <option value="">Select Degree Level</option>
+            <option value="Bachelor">Bachelor</option>
+            <option value="Master">Master</option>
+          </select>
+        </div>
+        {availableFaculties.length > 0 && (
+          <div className="dropdown-container dropdown-appear">
+            <label htmlFor="faculty">Faculty</label>
+            <select
+              id="faculty"
+              name="faculty"
+              value={formData.faculty}
+              onChange={handleChange}
+              required
+              className="modern-dropdown"
+            >
+              <option value="">Select Faculty</option>
+              {availableFaculties.map((faculty) => (
+                <option key={faculty} value={faculty}>
+                  {faculty}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {availablePrograms.length > 0 && (
+          <div className="dropdown-container dropdown-appear">
+            <label htmlFor="program">Program</label>
+            <select
+              id="program"
+              name="program"
+              value={formData.program}
+              onChange={handleChange}
+              required
+              className="modern-dropdown"
+            >
+              <option value="">Select Program</option>
+              {availablePrograms.map((program) => (
+                <option key={program} value={program}>
+                  {program}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {availableMajors.length > 0 && availableMajors[0] !== 'None' && (
+          <div className="dropdown-container dropdown-appear">
+            <label htmlFor="major">Major</label>
+            <select
+              id="major"
+              name="major"
+              value={formData.major}
+              onChange={handleChange}
+              className="modern-dropdown"
+            >
+              <option value="">Select Major (optional)</option>
+              {availableMajors.map((major) => (
+                <option key={major} value={major}>
+                  {major}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="input-container">
+          <label htmlFor="photo">Upload Your Photo</label>
           <input
             type="file"
             id="photo"
@@ -241,14 +259,9 @@ formData.faculty && formData.program ? faculties[formData.faculty].programs[form
             onChange={handleChange}
             required
           />
-          <span className="file-name">{formData.photo ? formData.photo.name : 'No file chosen'}</span>
         </div>
-
-        {/* Semester Bill Upload */}
-        <div className="file-input-wrapper">
-          <label className="custom-file-upload" htmlFor="semesterBill">
-            Upload Semester Bill
-          </label>
+        <div className="input-container">
+          <label htmlFor="semesterBill">Upload Semester Bill</label>
           <input
             type="file"
             id="semesterBill"
@@ -257,16 +270,9 @@ formData.faculty && formData.program ? faculties[formData.faculty].programs[form
             onChange={handleChange}
             required
           />
-          <span className="file-name">
-            {formData.semesterBill ? formData.semesterBill.name : 'No file chosen'}
-          </span>
         </div>
-
-        {/* Identity Card Upload */}
-        <div className="file-input-wrapper">
-          <label className="custom-file-upload" htmlFor="identityCard">
-            Upload Identity Card
-          </label>
+        <div className="input-container">
+          <label htmlFor="identityCard">Upload Identity Card</label>
           <input
             type="file"
             id="identityCard"
@@ -275,14 +281,9 @@ formData.faculty && formData.program ? faculties[formData.faculty].programs[form
             onChange={handleChange}
             required
           />
-          <span className="file-name">
-            {formData.identityCard ? formData.identityCard.name : 'No file chosen'}
-          </span>
         </div>
-
         <button type="submit">Submit</button>
       </form>
-
       {error && <p className="error">{error}</p>}
       {success && <p className="success">{success}</p>}
     </div>

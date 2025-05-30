@@ -1,20 +1,20 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../AuthContext';
+import api from '../api';
 import './Login.css';
 
 function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    role: 'student', // selected role in form
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -22,21 +22,27 @@ function Login() {
     setError('');
     setLoading(true);
 
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setLoading(false);
-      return;
-    }
+    const payload = {
+      email: formData.email,
+      password: formData.password,
+    };
 
     try {
-      const user = await login(email, password, role);
-      navigate(user.role === 'admin' ? '/admin-dashboard' : '/student-dashboard');
+      const response = await api.post('/api/auth/login', payload);
+      const { token, user } = response.data;
+
+      // Check if selected role matches actual user role from backend
+      if (user.role !== formData.role) {
+        setError(`You selected role "${formData.role}" but your registered role is "${user.role}". Please select the correct role.`);
+        setLoading(false);
+        return;
+      }
+
+      // Store token and redirect based on role
+      localStorage.setItem('token', token);
+      const route = user.role === 'admin' ? '/admin-dashboard' : '/student-dashboard';
+      navigate(route);
+
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     } finally {
@@ -48,33 +54,60 @@ function Login() {
     <div className="login-container">
       <h2>Login</h2>
       <form onSubmit={handleSubmit}>
-        <select value={role} onChange={(e) => setRole(e.target.value)} disabled={loading}>
-          <option value="student">Student</option>
-          <option value="admin">Admin</option>
-        </select>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={loading}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          disabled={loading}
-        />
+
+        <div className="input-container">
+          <label htmlFor="role">Role</label>
+          <select
+            name="role"
+            id="role"
+            value={formData.role}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          >
+            <option value="student">Student</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div className="input-container">
+          <label htmlFor="email">Email</label>
+          <input
+            type="email"
+            name="email"
+            id="email"
+            placeholder="Email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <div className="input-container">
+          <label htmlFor="password">Password</label>
+          <input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+        </div>
+
         <button type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
+
       </form>
+
       {error && <p className="error">{error}</p>}
+
       <p>
-        No account? <a href="/register">Register</a>
+        Don't have an account? <a href="/register">Register</a>
       </p>
     </div>
   );
