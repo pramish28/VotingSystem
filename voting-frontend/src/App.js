@@ -1,15 +1,21 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './AuthContext';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import StudentDashboard from './pages/StudentDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import VotingPage from './pages/VotingPage';
-import ResultPage from './pages/ResultPage';
-import ElectionNews from './pages/ElectionNews';
-import ProfilePage from './pages/ProfilePage';
-import './App.css';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import StudentDashboard from "./pages/StudentDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import VotingPage from "./pages/VotingPage";
+import ResultPage from "./pages/ResultPage";
+import ElectionNews from "./pages/ElectionNews";
+import ProfilePage from "./pages/ProfilePage";
+import "./App.css";
+import VerifiedUsers from "./components/VerifiedUsers";
+import ApproveStudents from "./components/ApproveStudents";
 
 const ProtectedRoute = ({ children, allowedRole }) => {
   const { user } = useAuth();
@@ -28,6 +34,22 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route
+            path="/verified-users"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <VerifiedUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approve-students"
+            element={
+              <ProtectedRoute role="admin">
+                <ApproveStudents />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/register" element={<Register />} />
           <Route
             path="/student-dashboard"

@@ -9,6 +9,8 @@ const authRoutes = require('./routes/auth');
 const voteRoutes = require('./routes/vote');
 const postRoutes = require('./routes/post');
 const electionRoutes = require('./routes/election');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const userRoutes = require('./routes/userRoutes'); //importing user routes for verified users
 
 dotenv.config();
 const app = express();
@@ -31,10 +33,12 @@ app.use(express.urlencoded({ limit: '16mb', extended: true }));
 app.use('/uploads', express.static(uploadDir));
 
 // Routes
+app.use('/api/users', userRoutes); // Route for verified users and pending students
 app.use('/api/auth', authRoutes);
 app.use('/api/vote', voteRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/election', electionRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -45,11 +49,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Server error', details: err.message });
 });
 
+
 // MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB connection error:', err));
+
+
 
 // Start Server
 const PORT = process.env.PORT || 5000;
