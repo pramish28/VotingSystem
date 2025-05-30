@@ -9,18 +9,24 @@ import './StudentDashboard.css';
 function StudentDashboard() {
   const { user, logout } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await api.get('/post');
+        const res = await api.get('/api/post');
         setPosts(res.data);
       } catch (err) {
+        setError('Failed to fetch posts');
         console.error('Failed to fetch posts:', err);
       }
     };
     fetchPosts();
   }, []);
+
+  if (!user) {
+    return <div>Please log in</div>;
+  }
 
   return (
     <div className="dashboard-container">
@@ -37,9 +43,12 @@ function StudentDashboard() {
       <div className="main-content">
         <CreatePost />
         <h2>Posts</h2>
-        {posts.map((post) => (
-          <Post key={post._id} post={post} />
-        ))}
+        {error && <p className="error">{error}</p>}
+        {posts.length > 0 ? (
+          posts.map((post) => <Post key={post._id} post={post} />)
+        ) : (
+          <p>No posts available</p>
+        )}
       </div>
     </div>
   );

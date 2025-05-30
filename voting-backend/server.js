@@ -1,10 +1,10 @@
-// backend/server.js
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 const authRoutes = require('./routes/auth');
 const voteRoutes = require('./routes/vote');
 const postRoutes = require('./routes/post');
@@ -12,8 +12,16 @@ const electionRoutes = require('./routes/election');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes'); //importing user routes for verified users
 
-dotenv.config();
 const app = express();
+
+// Debug environment variables
+console.log('Environment Variables:', {
+  PORT: process.env.PORT,
+  MONGO_URI: process.env.MONGO_URI,
+  EMAIL_USER: process.env.EMAIL_USER,
+  EMAIL_PASS: process.env.EMAIL_PASS ? 'Set' : 'Not set',
+  FRONTEND_URL: process.env.FRONTEND_URL,
+});
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'Uploads');
@@ -28,8 +36,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '16mb' }));
-app.use(express.urlencoded({ limit: '16mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static(uploadDir));
 
 // Routes

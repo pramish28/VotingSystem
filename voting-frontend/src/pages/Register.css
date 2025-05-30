@@ -1,10 +1,11 @@
+/* frontend/src/pages/Register.css */
 .register-container {
-  max-width: 420px;
-  margin: 50px auto;
+  max-width: 480px;
+  margin: 40px auto;
   padding: 35px 30px;
-  border-radius: 15px;
-  background: linear-gradient(145deg, #f0f4ff, #d9e2ff);
-  box-shadow: 0 12px 30px rgba(0, 123, 255, 0.25);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #f0f4ff, #dbe5ff);
+  box-shadow: 0 15px 35px rgba(0, 123, 255, 0.3);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
   border: 1px solid #007BFF;
@@ -12,182 +13,160 @@
 
 h2 {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
   font-weight: 800;
-  color: #004085;
+  color: #003b9b;
   letter-spacing: 1.2px;
-  text-shadow: 1px 1px 2px #b8c7ff;
+  text-shadow: 1px 1px 2px #b3ccff;
 }
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 label {
   font-weight: 700;
-  margin-bottom: 8px;
   color: #1a237e;
-  letter-spacing: 0.05em;
+  margin-bottom: 6px;
 }
 
 input[type="text"],
 input[type="email"],
 input[type="password"],
-input[type="file"] {
+input[type="file"],
+select {
   padding: 14px 16px;
   font-size: 16px;
   border: 2px solid #a3bffa;
   border-radius: 10px;
-  transition: border-color 0.4s ease, box-shadow 0.4s ease;
-  font-family: inherit;
-  color: #222;
   background-color: #f9fbff;
+  color: #222;
+  font-family: inherit;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="password"]:focus,
-input[type="file"]:focus {
+input[type="file"] {
+  padding: 10px 16px; /* Adjusted padding for file input */
+}
+
+input:focus,
+select:focus {
   border-color: #0056b3;
   box-shadow: 0 0 8px #0056b3cc;
+  background-color: #fff;
   outline: none;
-  background-color: #ffffff;
 }
 
 button {
-  padding: 16px;
-  font-size: 18px;
+  padding: 15px;
+  font-size: 17px;
   font-weight: 700;
-  background: linear-gradient(135deg, #0069d9, #0056b3);
+  background: linear-gradient(135deg, #0069d9, #004ea2);
   border: none;
   border-radius: 12px;
-  color: white;
+  color: #fff;
   cursor: pointer;
-  transition: background 0.35s ease, box-shadow 0.35s ease;
-  margin-top: 12px;
-  letter-spacing: 0.8px;
-  box-shadow: 0 6px 12px rgba(0, 86, 179, 0.5);
+  box-shadow: 0 6px 14px rgba(0, 86, 179, 0.5);
+  transition: all 0.35s ease;
 }
 
 button:hover {
-  background: linear-gradient(135deg, #0056b3, #003d80);
-  box-shadow: 0 8px 18px rgba(0, 61, 128, 0.7);
+  background: linear-gradient(135deg, #004ea2, #003580);
+  box-shadow: 0 8px 18px rgba(0, 61, 128, 0.6);
+}
+
+.error,
+.success {
+  margin-top: 12px;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.05);
 }
 
 .error {
   color: #d93025;
-  margin-top: 14px;
-  font-weight: 700;
-  text-align: center;
-  text-shadow: 0 0 4px #ffb3b3;
 }
 
 .success {
   color: #1e7e34;
-  margin-top: 14px;
-  font-weight: 700;
-  text-align: center;
-  text-shadow: 0 0 4px #b3f0b3;
-}
-/* Hide the native file input */
-.file-input-wrapper input[type="file"] {
-  display: none;
 }
 
-/* Sleek, modern file upload button */
-.custom-file-upload {
-  display: inline-block;
-  padding: 12px 20px;
-  background: #e3f2fd; /* soft pastel blue */
-  color: #1976d2; /* nice blue text */
-  font-weight: 600;
-  border-radius: 20px;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(25, 118, 210, 0.3);
-  user-select: none;
-  margin-right: 12px;
-  font-size: 14px;
-  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
-  border: 1.5px solid #90caf9;
-  width: 200px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.custom-file-upload:hover {
-  background: #bbdefb;  /* slightly darker pastel blue */
-  color: #0d47a1; /* darker blue */
-  box-shadow: 0 4px 8px rgba(13, 71, 161, 0.4);
-}
-
-/* Wrapper to align label and filename horizontally */
-.file-input-wrapper {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0px;
-}
-
-/* File name text aligned right */
-.file-name {
-  margin-left: auto; /* push to right */
-  font-style: italic;
-  color: #666;
-  font-size: 13px;
-  max-width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/*css for faculty selection*/
-
+/* Dropdown Styles */
 .dropdown-container {
   position: relative;
-  margin-bottom:0px;
+  margin-bottom: 0;
   font-family: inherit;
 }
-/* Update the modern-dropdown class to match your input styling */
+
 .modern-dropdown {
   width: 100%;
-  padding: 14px 16px;  /* Changed from 0.75rem 1rem to match inputs */
+  padding: 14px 16px;
   padding-right: 2.5rem;
-  font-size: 16px;  /* Changed from 1rem to 16px to match inputs */
-  color: #222;  /* Changed from #374151 to #222 to match inputs */
-  background-color: #f9fbff;  /* Changed from #ffffff to #f9fbff to match inputs */
-  border: 2px solid #a3bffa;  /* Changed from #e5e7eb to #a3bffa to match inputs */
-  border-radius: 10px;  /* Changed from 0.75rem to 10px to match inputs */
-  outline: none;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  font-size: 16px;
+  color: #222;
+  background-color: #f9fbff;
+  border: 2px solid #a3bffa;
+  border-radius: 10px;
   appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  font-family: inherit;  /* This ensures it uses the same font as inputs */
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 
-/* Update hover state to match input style */
 .modern-dropdown:hover {
-  border-color: #a3bffa;  /* Keep consistent with input border */
+  border-color: #a3bffa;
 }
 
-/* Update focus states to match your input focus style */
 .modern-dropdown:focus {
   border-color: #0056b3;
   box-shadow: 0 0 8px #0056b3cc;
-  outline: none;
-  background-color: #ffffff;
+  background-color: #fff;
 }
 
-/* Remove the individual focus colors and use the same for all */
-.modern-dropdown.faculty:focus,
-.modern-dropdown.program:focus,
-.modern-dropdown.major:focus {
-  border-color: #0056b3;
-  box-shadow: 0 0 8px #0056b3cc;
-  background-color: #ffffff;
+.dropdown-appear {
+  animation: slideIn 0.3s ease-in-out;
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+/* Responsive Design */
+@media screen and (max-width: 500px) {
+  .register-container {
+    margin: 20px;
+    padding: 25px 20px;
+  }
 
+  input[type="file"] {
+    font-size: 14px;
+  }
+}
+/* frontend/src/pages/Register.css */
+.register-container {
+  max-width: 480px;
+  margin: 40px auto;
+  padding: 35px 30px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #f0f4ff, #dbe5ff);
+  box-shadow: 0 15px 35px rgba(0, 123, 255, 0.3);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  border: 1px solid #007BFF;
+}
+
+/* ... rest of the CSS from previous response ... */

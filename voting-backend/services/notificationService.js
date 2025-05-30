@@ -2,6 +2,11 @@ const nodemailer = require('nodemailer');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 
+// Validate SMTP credentials
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.error('SMTP credentials missing in notificationService. Please set EMAIL_USER and EMAIL_PASS in .env');
+}
+
 // Initialize transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -11,7 +16,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Verify SMTP connection on startup
+// Verify SMTP connection
 transporter.verify((error, success) => {
   if (error) {
     console.error('SMTP connection error:', error);
@@ -22,38 +27,26 @@ transporter.verify((error, success) => {
 
 const sendNotification = async (userId, message) => {
   try {
-    const notification = new Notification({ userId, message });
-    await notification.save();
     const user = await User.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
+
     await transporter.sendMail({
+      from: `"Voting System" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: 'Voting System Notification',
       text: message,
     });
+
+    const notification = new Notification({ userId, message });
+    await notification.save();
+
     console.log(`Notification email sent to ${user.email}`);
-  } catch (err) {
-    console.error('Failed to send notification:', err.message, err.stack);
-    throw err;
+  } catch (error) {
+    console.error('Failed to send notification:', error.message, error.stack);
+    throw error;
   }
 };
 
-const sendVerificationCode = async (email, uniqueCode) => {
-  try {
-    console.log(`Attempting to send verification code to ${email}`);
-    await transporter.sendMail({
-      to: email,
-      from: process.env.EMAIL_USER,
-      subject: 'Your Verification Code',
-      html: `<h3>Your Verification Code</h3><p>Your unique verification code is: <strong>${uniqueCode}</strong></p>`,
-    });
-    console.log(`Verification code sent to ${email}`);
-  } catch (err) {
-    console.error('Failed to send verification code:', err.message, err.stack);
-    throw err;
-  }
-};
-
-module.exports = { sendNotification, sendVerificationCode };
+module.exports = { sendNotification };

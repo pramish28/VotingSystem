@@ -2,8 +2,38 @@ const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+const multer = require('multer');
+const path = require('path');
 
+// ===== File Upload Setup =====
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'Uploads/'),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png/;
+    const extValid = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimeValid = allowedTypes.test(file.mimetype);
+    if (extValid && mimeValid) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .jpg, .jpeg, .png files are allowed'));
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).fields([
+  { name: 'photo', maxCount: 1 },
+  { name: 'semesterBill', maxCount: 1 },
+  { name: 'identityCard', maxCount: 1 },
+  { name: 'data', maxCount: 1 },
+]);
+
+// ===== Email Setup =====
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -11,72 +41,81 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-const { sendNotification, sendVerificationCode } = require('../services/notificationService');
-const crypto = require('crypto');
 
-exports.register = async (req, res) => {
-  console.log('Request body:', req.body);
-  console.log('Request files:', req.files);
-
-  const { name, email, password, role = 'student', faculty, program, major } = req.body;
-
-  try {
-    if (!name || !email || !password || !faculty) {
-      return res.status(400).json({ error: 'Missing required fields' });
+// ===== REGISTER =====
+exports.register = (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      console.error('File upload error:', err.message);
+      return res.status(400).json({ error: err.message });
     }
 
-    if (
-      !req.files ||
-      !req.files.photo ||
-      !req.files.semesterBill ||
-      !req.files.identityCard
-    ) {
-      return res.status(400).json({ error: 'All file uploads (photo, semesterBill, identityCard) are required' });
+    try {
+      const data = JSON.parse(req.body.data || '{}');
+      const { name, email, password, degree, faculty, program, major } = data;
+
+      // === Validate Fields ===
+      if (!name || !email || !password || !degree || !faculty || !program || !req.files?.photo || !req.files?.semesterBill || !req.files?.identityCard) {
+        return res.status(400).json({ error: 'All required fields and files are required' });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+
+      // === Check Duplicate ===
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      // === Hash Password ===
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // === Create Voter ID ===
+      const voterId = `VOTE-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+      const newUser = new User({
+        name,
+        email,
+        password: hashedPassword,
+        role: 'student',
+        degree,
+        faculty,
+        program,
+        major: major || '',
+        photo: req.files.photo[0].path,
+        semesterBill: req.files.semesterBill[0].path,
+        identityCard: req.files.identityCard[0].path,
+        voterId,
+      });
+
+      await newUser.save();
+      res.status(201).json({ message: 'Registration successful. Awaiting verification.' });
+    } catch (error) {
+      console.error('Register error:', error.message);
+      res.status(500).json({ error: 'Server error', details: error.message });
     }
-
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ error: 'User already exists' });
-    }
-
-    const voterId = `VOTE-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-
-    user = new User({
-      name,
-      email,
-      password: await bcrypt.hash(password, 10),
-      role,
-      faculty,
-      program,
-      major: major || null,
-      photo: req.files.photo[0].path,
-      semesterBill: req.files.semesterBill[0].path,
-      identityCard: req.files.identityCard[0].path,
-      voterId,
-    });
-
-    await user.save();
-
-    const message = `Your Voter ID is: ${voterId}`;
-    await sendNotification(user._id, message);
-    console.log(`Voter ID sent to ${email}`);
-
-    res.status(201).json({ message: 'User registered, Voter ID sent to email. Awaiting verification.' });
-  } catch (err) {
-    console.error('Register error:', err);
-    if (err.name === 'MulterError') {
-      return res.status(400).json({ error: 'File upload error', details: err.message });
-    }
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
+  });
 };
 
+// ===== LOGIN =====
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
   try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
     const user = await User.findOne({ email });
+       console.log('User:', req.body, user) ;
+
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ error: 'No password set for this user' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -84,26 +123,40 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        photo: user.photo,
+        email: user.email,
+      },
     });
-    res.json({ token, user: { id: user._id, name: user.name, role: user.role } });
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ error: 'Server error', details: error.message });
   }
 };
 
+// ===== GET ALL USERS =====
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password');
     res.json(users);
-  } catch (err) {
-    console.error('Get users error:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+  } catch (error) {
+    console.error('Get users error:', error.message);
+    res.status(500).json({ error: 'Server error', details: error.message });
   }
 };
 
+// ===== VERIFY USER =====
 exports.verifyUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -111,29 +164,29 @@ exports.verifyUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const verificationCode = `VER-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    if (user.isVerified) {
+      return res.status(400).json({ error: 'User already verified' });
+    }
 
     user.isVerified = true;
-    user.verificationCode = verificationCode;
     await user.save();
 
-    try {
-      await sendVerificationCode(user.email, verificationCode);
-      console.log(`Verification code sent to ${user.email}`);
-      res.json({ message: 'User verified, verification code sent to email' });
-    } catch (emailErr) {
-      console.error('Email sending failed:', emailErr);
-      res.status(200).json({ 
-        message: 'User verified, but failed to send verification email',
-        emailError: emailErr.message 
-      });
-    }
-  } catch (err) {
-    console.error('Verify user error:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    // Send voter ID
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Voter ID',
+      text: `Your Voter ID is: ${user.voterId}`,
+    });
+
+    res.json({ message: 'User verified and voter ID sent' });
+  } catch (error) {
+    console.error('Verify user error:', error.message);
+    res.status(500).json({ error: 'Server error', details: error.message });
   }
 };
 
+// ===== GET ME =====
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -141,16 +194,8 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
-  } catch (err) {
-    console.error('Get me error:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+  } catch (error) {
+    console.error('Get me error:', error.message);
+    res.status(500).json({ error: 'Server error', details: error.message });
   }
-};
-
-module.exports = {
-  register: exports.register,
-  login: exports.login,
-  getUsers: exports.getUsers,
-  verifyUser: exports.verifyUser,
-  getMe: exports.getMe,
 };
