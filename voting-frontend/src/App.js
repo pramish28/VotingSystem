@@ -18,7 +18,10 @@ import VerifiedUsers from "./components/VerifiedUsers";
 import ApproveStudents from "./components/ApproveStudents";
 
 const ProtectedRoute = ({ children, allowedRole }) => {
-  const { user } = useAuth();
+  const { user,loading } = useAuth();
+  if(loading){
+    return <div>Loading...</div>; // Show a loading state while checking auth
+  }
   if (!user) {
     return <Navigate to="/login" />;
   }
@@ -45,7 +48,7 @@ function App() {
           <Route
             path="/approve-students"
             element={
-              <ProtectedRoute role="admin">
+              <ProtectedRoute allowedRole="admin">
                 <ApproveStudents />
               </ProtectedRoute>
             }
@@ -54,7 +57,7 @@ function App() {
           <Route
             path="/student-dashboard"
             element={
-              <ProtectedRoute role="student">
+              <ProtectedRoute allowedRole="student">
                 <StudentDashboard />
               </ProtectedRoute>
             }
@@ -62,7 +65,7 @@ function App() {
           <Route
             path="/admin-dashboard"
             element={
-              <ProtectedRoute role="admin">
+              <ProtectedRoute allowedRole="admin">
                 <AdminDashboard />
               </ProtectedRoute>
             }
@@ -70,7 +73,7 @@ function App() {
           <Route
             path="/vote"
             element={
-              <ProtectedRoute role="student">
+              <ProtectedRoute allowedRole="student">
                 <VotingPage />
               </ProtectedRoute>
             }

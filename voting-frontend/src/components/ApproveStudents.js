@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ApproveStudents.css";
+import api from "../api";
 
 const ApproveStudents = () => {
   const [students, setStudents] = useState([]);
@@ -22,61 +23,59 @@ const ApproveStudents = () => {
     }
   };
 
-  const handleApprove = async (id) => {
-    setProcessingId(id);
-    try {
-      const response = await fetch(
-       ` http://localhost:5000/api/students/approve-student/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ isVerified: true }),
-        }
-      );
+  const handleApprove = async (student) => {
+  
+    const confirmApprove=window.confirm(`Are you sure you want to approve ${student.name}?`);
 
-      if (response.ok) {
-        setStudents((prevStudents) =>
-          prevStudents.filter((student) => student._id !== id)
-        );
-      } else {
-        console.error("Failed to approve student");
-      }
-    } catch (err) {
-      console.error("Error approving student:", err);
-    } finally {
-      setProcessingId(null);
+    if(!confirmApprove) return;
+    setProcessingId(student._id); // Set processing ID to show loading state
+  
+
+    try {
+      const res = await api.post(`/api/users/approve-student`, {
+        studentId: student._id,
+        email: student.email,
+        name: student.name,
+      });
+      alert("Student approved and email sent!");
+
+      //Remove approved student from state so card disappears
+      setStudents(prevStudents=>prevStudents.filter(s=>s._id!==student._id));
+      
+    } catch (error) {
+      console.error("Error approving student:", error);
+      alert("Failed to approve student.");
+    } finally{
+      setProcessingId(null); // Reset processing ID after operation
     }
   };
 
-  const handleReject = async (id) => {
-    setProcessingId(id);
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/students/reject-student/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
+ const handleReject = async (student) => {
+  const confirmReject = window.confirm(`Are you sure you want to reject ${student.name}?`);
 
-      if (response.ok) {
-        setStudents((prevStudents) =>
-          prevStudents.filter((student) => student._id !== id)
-        );
-      } else {
-        console.error("Failed to reject student");
-      }
-    } catch (err) {
-      console.error("Error rejecting student:", err);
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  if (!confirmReject) return;
+  setProcessingId(student._id); // Set processing ID to show loading state
+
+  try {
+    const res = await api.delete(`/api/users/reject-student/${student._id}`);
+    alert("Student rejected and deleted from the database!");
+
+    // Remove rejected student from state so card disappears
+    setStudents(prevStudents => prevStudents.filter(s => s._id !== student._id));
+  } catch (error) {
+    console.error("Error rejecting student:", error);
+    alert("Failed to reject student.");
+  } finally {
+    setProcessingId(null); // Reset processing ID after operation
+  }
+};
+
 
   const handleViewDocument = (documentUrl, documentType) => {
+    console.log(documentUrl); //debugging line to check the URL
     if (documentUrl) {
-      window.open(documentUrl, "_blank");
+      const fullUrl = `http://localhost:5000/${documentUrl}`;
+      window.open(fullUrl, "_blank");
     } else {
       alert(`${documentType} not available`);
     }
@@ -128,7 +127,10 @@ const ApproveStudents = () => {
                 <div className="profile-section">
                   <div className="profile-photo-container">
                     <img
-                      src={student.photoUrl || "/default-avatar.png"}
+                      src={
+                        `http://localhost:5000/${student.photo}` ||
+                        "/default-avatar.png"
+                      }
                       alt={`${student.name || "Student"}
                       's profile`}
                       className="profile-photo"
@@ -150,26 +152,26 @@ const ApproveStudents = () => {
 
               <div className="card-body">
                 <div className="student-details">
-                    <div className="detail-row">
+                  <div className="detail-row">
                     <span className="detail-label">Degree Level:</span>
                     <span className="detail-value">
                       {student.degree || "Not specified"}
                     </span>
                   </div>
-                  
+
                   <div className="detail-row">
                     <span className="detail-label">Faculty:</span>
                     <span className="detail-value">
                       {student.faculty || "Not specified"}
                     </span>
                   </div>
-                      <div className="detail-row">
+                  <div className="detail-row">
                     <span className="detail-label">Program:</span>
                     <span className="detail-value">
                       {student.program || "Not specified"}
                     </span>
                   </div>
-                      <div className="detail-row">
+                  <div className="detail-row">
                     <span className="detail-label">Major:</span>
                     <span className="detail-value">
                       {student.major || "Not specified"}
@@ -179,7 +181,19 @@ const ApproveStudents = () => {
                   <div className="detail-row">
                     <span className="detail-label">Phone:</span>
                     <span className="detail-value">
-                      {student.phone || "Not provided"}
+                      {student.phoneNumber || "Not provided"}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Address:</span>
+                    <span className="detail-value">
+                      {student.address || "Not specified"}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Registration Number:</span>
+                    <span className="detail-value">
+                      {student.symbolNumber || "Not specified"}
                     </span>
                   </div>
                   <div className="detail-row">
@@ -199,7 +213,7 @@ const ApproveStudents = () => {
                       className="doc-btn semester-bill-btn"
                       onClick={() =>
                         handleViewDocument(
-                          student.semesterBillUrl,
+                          student.semesterBill,
                           "Semester Bill"
                         )
                       }
@@ -210,7 +224,7 @@ const ApproveStudents = () => {
                       className="doc-btn identity-card-btn"
                       onClick={() =>
                         handleViewDocument(
-                          student.identityCardUrl,
+                          student.identityCard,
                           "Identity Card"
                         )
                       }
@@ -227,7 +241,9 @@ const ApproveStudents = () => {
                     className={`approve-btn ${
                       processingId === student._id ? "processing" : ""
                     }`}
-                    onClick={() => handleApprove(student._id)}
+                    onClick={() => {
+                    handleApprove(student);
+                    }}
                     disabled={processingId === student._id}
                   >
                     {processingId === student._id
@@ -238,7 +254,7 @@ const ApproveStudents = () => {
                     className={`reject-btn ${
                       processingId === student._id ? "processing" : ""
                     }`}
-                    onClick={() => handleReject(student._id)}
+                    onClick={() => handleReject(student)}
                     disabled={processingId === student._id}
                   >
                     {processingId === student._id

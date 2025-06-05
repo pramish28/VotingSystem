@@ -182,7 +182,7 @@ function Register() {
   return (
     <div className="register-container">
       <h2>Register</h2>
-      <form onSubmit={handleSubmit} encType="multipart/form-data">
+      <form onSubmit={handleSubmit} encType="multipart/form-data" autoComplete='off'>
         <div className="input-container">
           <label htmlFor="name">Full Name</label>
           <input type="text" name="name" value={formData.name} onChange={handleChange} required />
@@ -306,4 +306,3 @@ function Register() {
 }
 
 export default Register;
-
