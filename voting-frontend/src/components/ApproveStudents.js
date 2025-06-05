@@ -26,7 +26,7 @@ const ApproveStudents = () => {
     setProcessingId(id);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/students/approve-student/${id}`,
+       ` http://localhost:5000/api/students/approve-student/${id}`,
         {
           method: "PUT",
           headers: {
@@ -129,7 +129,8 @@ const ApproveStudents = () => {
                   <div className="profile-photo-container">
                     <img
                       src={student.photoUrl || "/default-avatar.png"}
-                      alt={`${student.name || "Student"}'s profile`}
+                      alt={`${student.name || "Student"}
+                      's profile`}
                       className="profile-photo"
                     />
                   </div>

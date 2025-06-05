@@ -1,56 +1,89 @@
 const Vote = require('../models/Vote');
 const User = require('../models/User');
 const Candidate = require('../models/Candidate');
-const Post = require('../models/Post');
+const Election = require('../models/Election');
 
-exports.vote = async (req, res) => {
-  const { voterId, candidateId } = req.body;
+const submitVote = async (req, res) => {
   try {
-    const user = await User.findOne({ voterId });
-    if (!user || !user.isVerified) {
-      return res.status(401).json({ error: 'Invalid voter ID' });
-    }
-    const existingVote = await Vote.findOne({ userId: user._id });
+    const { candidateId, electionId } = req.body;
+    const userId = req.user.id;
+
+    // Check if user has already voted in this election
+    const existingVote = await Vote.findOne({ userId, electionId });
     if (existingVote) {
-      return res.status(400).json({ error: 'Already voted' });
+      return res.status(400).json({ message: 'You have already voted in this election.' });
     }
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Vote failed' });
-  }
-};
 
-exports.confirmVote = async (req, res) => {
-  const { voterId, candidateId } = req.body;
-  try {
-    const user = await User.findOne({ voterId });
-    const vote = new Vote({ userId: user._id, candidateId, electionId: '670f1234567890abcdef1234' });
+    // Verify candidate and election
+    const candidate = await Candidate.findById(candidateId);
+    const election = await Election.findById(electionId);
+    if (!candidate || !election) {
+      return res.status(404).json({ message: 'Invalid candidate or election.' });
+    }
+
+    // Create vote
+    const vote = new Vote({ userId, candidateId, electionId });
     await vote.save();
-    res.json({ message: 'Vote recorded' });
+
+    // Update user's hasVoted status
+    await User.findByIdAndUpdate(userId, { hasVoted: true });
+
+    res.json({ message: 'Vote submitted successfully.' });
   } catch (err) {
-    res.status(500).json({ error: 'Vote confirmation failed' });
+    console.error('Submit vote error:', err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
-exports.getResults = async (req, res) => {
+const confirmVote = async (req, res) => {
   try {
-    const results = await Vote.aggregate([
-      { $group: { _id: '$candidateId', votes: { $sum: 1 } } },
-      { $lookup: { from: 'candidates', localField: '_id', foreignField: '_id', as: 'candidate' } },
-      { $unwind: '$candidate' },
-      { $project: { candidateName: '$candidate.name', votes: 1 } },
-    ]);
+    const { candidateId, electionId } = req.body;
+    const userId = req.user.id;
 
-    const posts = await Post.find().populate('userId');
-    const totalInteractions = posts.reduce((sum, p) => sum + p.likes.length + p.comments.length, 0);
-    const probabilities = await Promise.all(results.map(async (result) => {
-      const candidatePosts = posts.filter(p => p.userId.name === result.candidateName);
-      const interactions = candidatePosts.reduce((sum, p) => sum + p.likes.length + p.comments.length, 0);
-      return { candidateName: result.candidateName, probability: totalInteractions ? interactions / totalInteractions : 0 };
-    }));
+    // Verify vote exists
+    const vote = await Vote.findOne({ userId, candidateId, electionId });
+    if (!vote) {
+      return res.status(404).json({ message: 'Vote not found.' });
+    }
 
-    res.json({ results, probabilities });
+    res.json({ message: 'Vote confirmed successfully.' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch results' });
+    console.error('Confirm vote error:', err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 };
+
+const getResults = async (req, res) => {
+  try {
+    const votes = await Vote.aggregate([
+      { $group: { _id: '$candidateId', votes: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: 'candidates',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'candidate',
+        },
+      },
+      { $unwind: '$candidate' },
+      {
+        $project: {
+          _id: '$candidate._id',
+          name: '$candidate.name',
+          position: '$candidate.position',
+          votes: 1,
+          percentage: {
+            $multiply: [{ $divide: ['$votes', { $literal: await Vote.countDocuments() }] }, 100],
+          },
+          color: '$candidate.color',
+        },
+      },
+    ]);
+    res.json(votes);
+  } catch (err) {
+    console.error('Get results error:', err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { submitVote, confirmVote, getResults };
