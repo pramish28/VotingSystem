@@ -41,6 +41,7 @@ function Register() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     degree: '',
     faculty: '',
@@ -74,6 +75,7 @@ function Register() {
     if (
       !formData.name ||
       !formData.email ||
+      !formData.phone ||
       !formData.password ||
       !formData.degree ||
       !formData.faculty ||
@@ -90,6 +92,7 @@ function Register() {
     const textData = {
       name: formData.name,
       email: formData.email,
+      phone: formData.phone || '',
       password: formData.password,
       degree: formData.degree,
       faculty: formData.faculty,
@@ -163,6 +166,20 @@ function Register() {
             required
           />
         </div>
+        <div className="input-container">
+  <label htmlFor="phone">Phone Number</label>
+  <input
+    type="tel"
+    id="phone"
+    name="phone"
+    placeholder="Enter phone number"
+    value={formData.phone}
+    onChange={handleChange}
+    required
+    pattern="[0-9]{10}" // Optional: enforces 10 digits only
+  />
+</div>
+
         <div className="input-container">
           <label htmlFor="password">Password</label>
           <input

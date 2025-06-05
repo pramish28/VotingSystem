@@ -149,18 +149,32 @@ const ApproveStudents = () => {
 
               <div className="card-body">
                 <div className="student-details">
-                  <div className="detail-row">
-                    <span className="detail-label">Department:</span>
+                    <div className="detail-row">
+                    <span className="detail-label">Degree Level:</span>
                     <span className="detail-value">
-                      {student.department || "Not specified"}
+                      {student.degree || "Not specified"}
                     </span>
                   </div>
+                  
                   <div className="detail-row">
-                    <span className="detail-label">Semester:</span>
+                    <span className="detail-label">Faculty:</span>
                     <span className="detail-value">
-                      {student.semester || "Not specified"}
+                      {student.faculty || "Not specified"}
                     </span>
                   </div>
+                      <div className="detail-row">
+                    <span className="detail-label">Program:</span>
+                    <span className="detail-value">
+                      {student.program || "Not specified"}
+                    </span>
+                  </div>
+                      <div className="detail-row">
+                    <span className="detail-label">Major:</span>
+                    <span className="detail-value">
+                      {student.major || "Not specified"}
+                    </span>
+                  </div>
+
                   <div className="detail-row">
                     <span className="detail-label">Phone:</span>
                     <span className="detail-value">
