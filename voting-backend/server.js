@@ -12,6 +12,7 @@ const electionRoutes = require('./routes/election');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes'); //importing user routes for verified users
 
+
 const app = express();
 
 // Debug environment variables
@@ -47,6 +48,8 @@ app.use('/api/vote', voteRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/election', electionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

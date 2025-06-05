@@ -89,7 +89,6 @@ function Register() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     password: '',
     degree: '',
     faculty: '',
@@ -124,17 +123,6 @@ function Register() {
     setError('');
     setSuccess('');
 
-<<<<<<< HEAD
-    if (
-      !formData.name ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.password ||
-      !formData.degree ||
-      !formData.faculty ||
-      !formData.program
-    ) {
-=======
     const {
       name, email, password, degree,
       faculty, program, major,
@@ -143,7 +131,6 @@ function Register() {
     } = formData;
 
     if (!name || !email || !password || !degree || !faculty || !program || !yearOrSemester || !symbolNumber || !phoneNumber || !address) {
->>>>>>> c73cfe1ba6e7f3a4ecf1c3c499ad87825947d586
       setError('Please fill all required fields.');
       return;
     }
@@ -154,23 +141,12 @@ function Register() {
     }
 
     const textData = {
-<<<<<<< HEAD
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone || '',
-      password: formData.password,
-      degree: formData.degree,
-      faculty: formData.faculty,
-      program: formData.program,
-      major: formData.major || '',
-=======
       name, email, password, degree,
       faculty, program, major: major || '',
       yearOrSemester,
       symbolNumber,
       phoneNumber,
       address,
->>>>>>> c73cfe1ba6e7f3a4ecf1c3c499ad87825947d586
     };
 
     const fileData = new FormData();
@@ -206,7 +182,7 @@ function Register() {
   return (
     <div className="register-container">
       <h2>Register</h2>
-      <form onSubmit={handleSubmit} encType="multipart/form-data">
+      <form onSubmit={handleSubmit} encType="multipart/form-data" autoComplete='off'>
         <div className="input-container">
           <label htmlFor="name">Full Name</label>
           <input type="text" name="name" value={formData.name} onChange={handleChange} required />
@@ -230,20 +206,6 @@ function Register() {
             pattern="^(\+977)?9\d{9}$"
           />
         </div>
-
-        <div className="input-container">
-  <label htmlFor="phone">Phone Number</label>
-  <input
-    type="tel"
-    id="phone"
-    name="phone"
-    placeholder="Enter phone number"
-    value={formData.phone}
-    onChange={handleChange}
-    required
-    pattern="[0-9]{10}" // Optional: enforces 10 digits only
-  />
-</div>
 
         <div className="input-container">
           <label htmlFor="password">Password</label>
@@ -344,4 +306,3 @@ function Register() {
 }
 
 export default Register;
-
