@@ -13,8 +13,8 @@ const Vote = require('../models/Vote');
 router.get('/stats', async (req, res) => {
   try {
     // Use Mongoose to count documents
-    const verifiedUsers = await User.countDocuments({ isVerified: true });
-    console.log('Verified Users:', verifiedUsers);//debugging line
+    const verifiedUsers = await User.countDocuments({ isVerified: true , role: { $ne: 'admin' } }); // Exclude admin users from the count
+   
     const pendingStudents = await User.countDocuments({ isVerified: false });
     const activePosts = await Post.countDocuments({ status: 'approved' });
     const activeElections = await Election.countDocuments({ status: 'active' });

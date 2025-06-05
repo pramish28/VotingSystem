@@ -50,7 +50,7 @@ exports.getMoreNews = async (req, res) => {
 exports.getElectionStats = async (req, res) => {
   try {
     const election = await Election.findOne({ status: "active" })
-    const totalVoters = await User.countDocuments({ isVerified: true })
+    const totalVoters = await User.countDocuments({ isVerified: true,role:{$ne:'admin'} }) //exclude admin
     const votesCast = await Vote.countDocuments({ electionId: election._id })
     const candidateCount = await Candidate.countDocuments({ electionId: election._id })
     const endDate = election.endDate.toISOString().split("T")[0]
