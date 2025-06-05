@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
+const Vote = require('../models/Vote'); // Added missing import
 const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
@@ -43,7 +43,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // ===== REGISTER =====
-exports.register = (req, res) => {
+const register = (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       console.error('File upload error:', err.message);
@@ -52,10 +52,36 @@ exports.register = (req, res) => {
 
     try {
       const data = JSON.parse(req.body.data || '{}');
-      const { name, email, password, degree, faculty, program, major } = data;
+      const {
+        name,
+        email,
+        password,
+        degree,
+        faculty,
+        program,
+        major,
+        yearOrSemester,
+        symbolNumber,
+        phoneNumber,
+        address,
+      } = data;
 
       // === Validate Fields ===
-      if (!name || !email || !password || !degree || !faculty || !program || !req.files?.photo || !req.files?.semesterBill || !req.files?.identityCard) {
+      if (
+        !name ||
+        !email ||
+        !password ||
+        !degree ||
+        !faculty ||
+        !program ||
+        !yearOrSemester ||
+        !symbolNumber ||
+        !phoneNumber ||
+        !address ||
+        !req.files?.photo ||
+        !req.files?.semesterBill ||
+        !req.files?.identityCard
+      ) {
         return res.status(400).json({ error: 'All required fields and files are required' });
       }
 
@@ -84,10 +110,15 @@ exports.register = (req, res) => {
         faculty,
         program,
         major: major || '',
+        yearOrSemester,
+        symbolNumber,
+        phoneNumber,
+        address,
         photo: req.files.photo[0].path,
         semesterBill: req.files.semesterBill[0].path,
         identityCard: req.files.identityCard[0].path,
         voterId,
+        preferences: { emailNotifications: true, smsAlerts: false, resultNotifications: true },
       });
 
       await newUser.save();
@@ -100,7 +131,7 @@ exports.register = (req, res) => {
 };
 
 // ===== LOGIN =====
-exports.login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -108,12 +139,14 @@ exports.login = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-       console.log('User:', req.body, user) ;
+    console.log('User:', req.body, user);
 
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-
+    if (!user.isVerified) {
+      return res.status(403).json({ error: 'Account not verified. Please contact the admin for verification.' });
+    }
     if (!user.password) {
       return res.status(400).json({ error: 'No password set for this user' });
     }
@@ -146,7 +179,7 @@ exports.login = async (req, res) => {
 };
 
 // ===== GET ALL USERS =====
-exports.getUsers = async (req, res) => {
+const getUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password');
     res.json(users);
@@ -157,7 +190,7 @@ exports.getUsers = async (req, res) => {
 };
 
 // ===== VERIFY USER =====
-exports.verifyUser = async (req, res) => {
+const verifyUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -187,7 +220,7 @@ exports.verifyUser = async (req, res) => {
 };
 
 // ===== GET ME =====
-exports.getMe = async (req, res) => {
+const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
@@ -199,3 +232,33 @@ exports.getMe = async (req, res) => {
     res.status(500).json({ error: 'Server error', details: error.message });
   }
 };
+
+
+// ===== GET VOTING HISTORY =====
+const getVotingHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const votes = await Vote.find({ userId })
+      .populate({
+        path: 'candidateId',
+        select: 'name position',
+      })
+      .populate({
+        path: 'electionId',
+        select: 'title',
+      });
+    const history = votes.map(vote => ({
+      election: vote.electionId ? vote.electionId.title : 'Unknown',
+      date: vote.createdAt.toISOString().split('T')[0],
+      status: 'Completed',
+      statusColor: 'bg-green-500',
+      candidate: vote.candidateId ? vote.candidateId.name : 'Unknown',
+    }));
+    res.json(history);
+  } catch (err) {
+    console.error('Get voting history error:', err.message);
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+};
+
+module.exports = { register, login, getUsers, verifyUser, getMe, getVotingHistory };
