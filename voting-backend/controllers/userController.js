@@ -2,7 +2,8 @@ const User = require("../models/User")
 
 exports.getVerifiedUsers = async (req, res) => {
   try {
-    const verifiedUsers = await User.find({ isVerified: true }).select("name email role")
+    const verifiedUsers = await User.find({ isVerified: true, role:{$ne:'admin'} }).select("-password -__v");
+    console.log("Verified users being sent:", verifiedUsers); // Debugging line to check the fetched users
     res.json(verifiedUsers)
   } catch (error) {
     console.error("Error fetching verified users:", error)

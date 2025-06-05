@@ -28,6 +28,7 @@ router.post('/approve-student', async (req, res) => {
 
     // Update isVerified
     student.isVerified = true;
+    student.verifiedAt=new Date(); //set the current time
     await student.save();
 
     // Setup nodemailer transporter

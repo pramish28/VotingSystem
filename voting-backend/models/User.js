@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
   identityCard: { type: String, required: true },
   voterId: { type: String, required: true },
   isVerified: { type: Boolean, default: false },
+  verifiedAt: { type: Date },
   preferences: {
     emailNotifications: { type: Boolean, default: true },
     smsAlerts: { type: Boolean, default: false },

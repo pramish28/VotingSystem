@@ -62,15 +62,25 @@ const VerifiedStudents = () => {
                 <div className="profile-section">
                   <div className="profile-photo-container">
                     <img
-                      src={`http://localhost:5000/${student.photo}` || "/default-avatar.png"}
+                      src={
+                        student.photo
+                          ? `http://localhost:5000/${student.photo}`
+                          : "/default-avatar.png"
+                      }
                       alt={`${student.name || "Student"}'s profile`}
                       className="profile-photo"
                     />
                   </div>
                   <div className="student-basic-info">
-                    <h3 className="student-name">{student.name || "Name not provided"}</h3>
-                    <p className="student-id">Roll: {student.student_id || "N/A"}</p>
-                    <p className="student-email">{student.email || "Email not provided"}</p>
+                    <h3 className="student-name">
+                      {student.name || "Name not provided"}
+                    </h3>
+                    <p className="student-id">
+                      Roll: {student.student_id || "N/A"}
+                    </p>
+                    <p className="student-email">
+                      {student.email || "Email not provided"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -79,37 +89,58 @@ const VerifiedStudents = () => {
                 <div className="student-details">
                   <div className="detail-row">
                     <span className="detail-label">Degree Level:</span>
-                    <span className="detail-value">{student.degree || "Not specified"}</span>
+                    <span className="detail-value">
+                      {student.degree || "Not specified"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Faculty:</span>
-                    <span className="detail-value">{student.faculty || "Not specified"}</span>
+                    <span className="detail-value">
+                      {student.faculty || "Not specified"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Program:</span>
-                    <span className="detail-value">{student.program || "Not specified"}</span>
+                    <span className="detail-value">
+                      {student.program || "Not specified"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Major:</span>
-                    <span className="detail-value">{student.major || "Not specified"}</span>
+                    <span className="detail-value">
+                      {student.major || "Not specified"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Phone:</span>
-                    <span className="detail-value">{student.phoneNumber || "Not provided"}</span>
+                    <span className="detail-value">
+                      {student.phoneNumber || "Not provided"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Address:</span>
-                    <span className="detail-value">{student.address || "Not specified"}</span>
+                    <span className="detail-value">
+                      {student.address || "Not specified"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Registration Number:</span>
-                    <span className="detail-value">{student.symbolNumber || "Not specified"}</span>
+                    <span className="detail-value">
+                      {student.symbolNumber || "Not specified"}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Verified On:</span>
                     <span className="detail-value">
                       {student.verifiedAt
-                        ? new Date(student.verifiedAt).toLocaleDateString()
+                        ? new Date(student.verifiedAt).toLocaleString('en-US',{
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',  
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })
                         : "Unknown"}
                     </span>
                   </div>
