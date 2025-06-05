@@ -19,8 +19,6 @@ router.get('/pending-students',async(req,res)=>{
 router.post('/approve-student', async (req, res) => {
   const{studentId, email,name}=req.body;
   try {
-
-    console.log("Request received:",studentId, email, name); //debugging
     
     // Find student first to get their email and name
     const student = await User.findById(studentId);
@@ -49,6 +47,8 @@ router.post('/approve-student', async (req, res) => {
         <p>Dear ${student.name},</p>
         <p>Congratulations! Your registration for the student election system has been approved.</p>
         <p>You can now log in and participate in the election.</p>
+        <p>This is your VoterId: ${student.voterId}</p>
+        <p><strong>Keep this confidential!</strong></p>
         <p>Thank you,<br/>Online Voting System</p>
       `,
     };
@@ -63,17 +63,53 @@ router.post('/approve-student', async (req, res) => {
   }
 });
 
-//route to reject students
+// route to reject students
+router.delete('/reject-student/:id', async (req, res) => {
+  const studentId = req.params.id;
 
-router.delete('/reject-student/:id',async(req,res)=>{
-    try{
-        const studentId=req.params.id;
-        await User.findByIdAndDelete(studentId);
-        res.json({success:true,message:'Student rejected successfully'});
-    }catch(err){
-        res.status(500).json({error:'Server error'});
+  try {
+    // Find student first to get their email and name
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
     }
+
+    // Setup nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: '"Online Voting System" sameerpokhrel2002@gmail.com',
+      to: student.email,
+      subject: 'Your Registration Has Been Rejected',
+      html: `
+        <p>Dear ${student.name},</p>
+        <p>We regret to inform you that your registration for the student election system has been rejected.</p>
+        <p>If you believe this was a mistake or have any questions, please contact the election administration.</p>
+        <p>Thank you,<br/>Online Voting System</p>
+      `,
+    };
+
+    // Send rejection email before deletion
+    await transporter.sendMail(mailOptions);
+
+    // Delete student after sending the email
+    await User.findByIdAndDelete(studentId);
+
+    return res.json({ success: true, message: 'Student rejected, email sent, and data deleted' });
+  } catch (err) {
+    console.error('Rejection error:', err);
+    return res.status(500).json({ error: 'Server error' });
+  }
 });
+
+
+
 
 
 //testing route

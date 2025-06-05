@@ -28,6 +28,7 @@ const ApproveStudents = () => {
     const confirmApprove=window.confirm(`Are you sure you want to approve ${student.name}?`);
 
     if(!confirmApprove) return;
+    setProcessingId(student._id); // Set processing ID to show loading state
   
 
     try {
@@ -37,36 +38,38 @@ const ApproveStudents = () => {
         name: student.name,
       });
       alert("Student approved and email sent!");
+
+      //Remove approved student from state so card disappears
+      setStudents(prevStudents=>prevStudents.filter(s=>s._id!==student._id));
       
     } catch (error) {
       console.error("Error approving student:", error);
       alert("Failed to approve student.");
+    } finally{
+      setProcessingId(null); // Reset processing ID after operation
     }
   };
 
-  const handleReject = async (id) => {
-    setProcessingId(id);
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/students/reject-student/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
+ const handleReject = async (student) => {
+  const confirmReject = window.confirm(`Are you sure you want to reject ${student.name}?`);
 
-      if (response.ok) {
-        setStudents((prevStudents) =>
-          prevStudents.filter((student) => student._id !== id)
-        );
-      } else {
-        console.error("Failed to reject student");
-      }
-    } catch (err) {
-      console.error("Error rejecting student:", err);
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  if (!confirmReject) return;
+  setProcessingId(student._id); // Set processing ID to show loading state
+
+  try {
+    const res = await api.delete(`/api/users/reject-student/${student._id}`);
+    alert("Student rejected and deleted from the database!");
+
+    // Remove rejected student from state so card disappears
+    setStudents(prevStudents => prevStudents.filter(s => s._id !== student._id));
+  } catch (error) {
+    console.error("Error rejecting student:", error);
+    alert("Failed to reject student.");
+  } finally {
+    setProcessingId(null); // Reset processing ID after operation
+  }
+};
+
 
   const handleViewDocument = (documentUrl, documentType) => {
     console.log(documentUrl); //debugging line to check the URL
@@ -251,7 +254,7 @@ const ApproveStudents = () => {
                     className={`reject-btn ${
                       processingId === student._id ? "processing" : ""
                     }`}
-                    onClick={() => handleReject(student._id)}
+                    onClick={() => handleReject(student)}
                     disabled={processingId === student._id}
                   >
                     {processingId === student._id
