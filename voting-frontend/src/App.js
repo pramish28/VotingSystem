@@ -19,15 +19,18 @@ import ApproveStudents from "./components/ApproveStudents";
 
 const ProtectedRoute = ({ children, allowedRole }) => {
   const { user,loading } = useAuth();
+  console.log("ProtectedRoute render:",{user, loading,allowedRole});
   if(loading){
     return <div>Loading...</div>; // Show a loading state while checking auth
   }
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace/>;
   }
   if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to="/login" />;
+    console.log("Role mismatch, redirecting to login");
+    return <Navigate to="/login" replace/>;
   }
+  console.log("ProtectedRoute access granted:", { user, allowedRole });
   return children;
 };
 
