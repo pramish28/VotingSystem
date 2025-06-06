@@ -22,6 +22,24 @@ const AdminDashboard = () => {
     { id: 4, type: 'vote', message: 'Voting period ended for "Class Representative"', time: '3 hours ago' }
   ]);
 
+  //logout function and state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+const handleLogout = () => {
+  setShowLogoutModal(true);
+};
+
+const confirmLogout = () => {
+  // Clear the token from localStorage
+  localStorage.removeItem('token');
+  // Navigate back to login page
+  navigate('/login'); // or whatever your login route is
+};
+
+const cancelLogout = () => {
+  setShowLogoutModal(false);
+};
+
   const fetchDashboardStats = async () => {
     setLoading(true);
     setError(null);
@@ -92,7 +110,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      <div className="header">
+      {/* <div className="header">
         <div className="header-left">
           <h1>Admin Dashboard</h1>
         </div>
@@ -105,7 +123,28 @@ const AdminDashboard = () => {
             <div className="admin-avatar">A</div>
           </div>
         </div>
+      </div> */}
+      <div className="header">
+  <div className="header-left">
+    <h1>Admin Dashboard</h1>
+  </div>
+  <div className="header-right">
+    <div className="admin-info">
+      <div className="admin-details">
+        <span className="admin-name">Admin User</span>
+        <span className="admin-status">Online</span>
       </div>
+      <div className="admin-avatar">A</div>
+    </div>
+    <button 
+      className="logout-btn" 
+      onClick={handleLogout}
+      title="Logout"
+    >
+      🚪 Logout
+    </button>
+  </div>
+</div>
 
       <div className="stats-grid">
         <div className="stat-card verified">
@@ -139,6 +178,29 @@ const AdminDashboard = () => {
             <div className="stat-label">Active Elections</div>
           </div>
         </div>
+        {showLogoutModal && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h3>Confirm Logout</h3>
+      <p>Are you sure you want to logout?</p>
+      <div className="modal-buttons">
+        <button 
+          className="btn-cancel" 
+          onClick={cancelLogout}
+        >
+          Cancel
+        </button>
+        <button 
+          className="btn-confirm" 
+          onClick={confirmLogout}
+        >
+          Yes, Logout
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       </div>
 
       <div className="main-content">
