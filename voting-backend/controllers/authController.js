@@ -89,11 +89,25 @@ const register = (req, res) => {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
       }
 
-      // === Check Duplicate ===
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
-      }
+              // === Check Duplicate ===
+          const existingUser = await User.findOne({
+          $or: [
+            { email },
+            { symbolNumber },
+            { phoneNumber }
+          ]
+          });
+
+          if (existingUser) {
+          // Figure out which field is duplicate
+          let duplicateField = '';
+          if (existingUser.email === email) duplicateField = 'Email';
+          else if (existingUser.symbolNumber === symbolNumber) duplicateField = 'Symbol Number';
+          else if (existingUser.phoneNumber === phoneNumber) duplicateField = 'Phone Number';
+
+          return res.status(400).json({ error: `${duplicateField} already exists` });
+          }
+
 
       // === Hash Password ===
       const hashedPassword = await bcrypt.hash(password, 12);
