@@ -16,6 +16,7 @@ import ProfilePage from "./pages/ProfilePage";
 import "./App.css";
 import VerifiedUsers from "./components/VerifiedUsers";
 import ApproveStudents from "./components/ApproveStudents";
+import CreatePost from "./pages/CreatePost";
 
 const ProtectedRoute = ({ children, allowedRole }) => {
   const { user,loading } = useAuth();
@@ -80,6 +81,8 @@ function App() {
           />
           <Route path="/results" element={<ResultPage />} />
           <Route path="/news" element={<ElectionNews />} />
+          <Route path="/create-post" element={<CreatePost />} />
+
           <Route
             path="/profile"
             element={

@@ -1,0 +1,150 @@
+/* Background Layer */
+.background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('../../public/background.jpg') !important; /* Changed from ../../public/background.jpg to /background.jpg */
+  background-size: cover;
+  background-position: center;
+  filter: blur(5px);
+  opacity: 0.6;
+  z-index: -1;
+}
+
+/* Container to center the content */
+.election-hub-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  z-index: 1;
+  position: relative;
+}
+
+/* Header section */
+.header {
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.megaphone-icon {
+  font-size: 1.5rem;
+}
+
+.verified-badge {
+  background-color: #28a745;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.header-content h1 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.tagline {
+  font-size: 1rem;
+}
+
+.highlight-green {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.highlight-purple {
+  color: #6f42c1;
+  font-weight: bold;
+}
+
+/* Form Styles */
+.form-container {
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.edit-icon {
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+textarea,
+select,
+input[type='file'] {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.file-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-upload-text {
+  font-size: 0.9rem;
+}
+
+.attachment-icon {
+  margin-right: 0.3rem;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.submit-button:hover {
+  background-color: #0056b3;
+}
