@@ -146,14 +146,16 @@ const register = (req, res) => {
 
 // ===== LOGIN =====
 const login = async (req, res) => {
+  console.log('Login attempt:', { email: req.body.email, timestamp: new Date().toISOString() }); // Debugging line
   try {
-    const { email, password } = req.body;
+    const { email, password} = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+
     const user = await User.findOne({ email });
-    console.log('User:', req.body, user);
+    // console.log('User:', req.body, user);
 
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
