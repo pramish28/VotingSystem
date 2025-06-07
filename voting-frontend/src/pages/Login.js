@@ -7,7 +7,7 @@ function Login() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: 'studentstudent', //default role set to 'student'
+    role: 'student', //default role set to 'student'
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

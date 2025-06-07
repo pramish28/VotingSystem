@@ -54,7 +54,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-    const interval = setInterval(fetchDashboardStats, 30000);
+    const interval = setInterval(fetchDashboardStats, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -80,11 +80,11 @@ const StudentDashboard = () => {
         navigate('/posts');
         break;
       case 'logout':
-        localStorage.removeItem('token');
-        navigate('/login');
-        break;
-      case 'home':
-        navigate('/');
+        const confirmLogout = window.confirm("Are you sure you want to logout?");
+        if (confirmLogout) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
         break;
       default:
         console.warn('No handler for:', actionType);
@@ -217,16 +217,6 @@ const StudentDashboard = () => {
               <span className="btn-content">
                 <span className="btn-icon">🚪</span>
                 <span className="btn-text">Logout</span>
-              </span>
-            </button>
-
-            <button
-              className="action-btn home-btn"
-              onClick={() => handleAction('home')}
-            >
-              <span className="btn-content">
-                <span className="btn-icon">🏠</span>
-                <span className="btn-text">Home</span>
               </span>
             </button>
           </div>
