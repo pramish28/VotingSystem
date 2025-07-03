@@ -1,0 +1,163 @@
+
+/* Main container */
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  min-height: 100vh;
+  background-color: #f8fafc; /* Light mode background */
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.4s ease;
+}
+
+[data-theme="dark"] .container {
+  background-color: #0f172a; /* Dark mode background */
+}
+
+/* Gradient header with wave effect */
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 160px;
+  background: linear-gradient(135deg, #14b8a6 0%, #4f46e5 100%); /* Teal to indigo */
+  z-index: 0;
+  clip-path: ellipse(150% 100% at 50% 0%);
+}
+
+[data-theme="dark"] .container::before {
+  background: linear-gradient(135deg, #0d9488 0%, #3730a3 100%);
+}
+
+/* Page title */
+.page-title {
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: #ffffff; /* White text on gradient */
+  text-align: center;
+  margin: 0 0 48px;
+  padding: 32px 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.6s ease-out;
+}
+
+/* No posts message */
+.no-posts {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #475569; /* Light mode text */
+  font-weight: 600;
+  margin: 80px auto;
+  padding: 32px;
+  background-color: #ffffff; /* Light mode card */
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  max-width: 600px;
+  transition: background-color 0.4s ease, color 0.4s ease, transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="dark"] .no-posts {
+  color: #cbd5e1;
+  background-color: #1e293b; /* Dark mode card */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.no-posts:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .no-posts:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.no-posts::after {
+  content: 'Join the election buzz—share your ideas now!';
+  display: block;
+  font-size: 1rem;
+  color: #14b8a6; /* Teal accent */
+  font-weight: 500;
+  margin-top: 16px;
+  font-style: normal;
+}
+
+[data-theme="dark"] .no-posts::after {
+  color: #2dd4bf;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 32px 16px;
+  }
+
+  .container::before {
+    height: 120px;
+    clip-path: ellipse(140% 90% at 50% 0%);
+  }
+
+  .page-title {
+    font-size: 2.25rem;
+    padding: 24px 0;
+    margin-bottom: 32px;
+  }
+
+  .no-posts {
+    font-size: 1.25rem;
+    padding: 24px;
+    margin: 48px auto;
+    max-width: 500px;
+  }
+
+  .no-posts::after {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 24px 12px;
+  }
+
+  .container::before {
+    height: 100px;
+    clip-path: ellipse(130% 80% at 50% 0%);
+  }
+
+  .page-title {
+    font-size: 1.875rem;
+    padding: 20px 0;
+    margin-bottom: 24px;
+  }
+
+  .no-posts {
+    font-size: 1.125rem;
+    padding: 16px;
+    margin: 32px auto;
+    max-width: 90%;
+  }
+
+  .no-posts::after {
+    font-size: 0.9rem;
+  }
+}

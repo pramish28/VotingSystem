@@ -17,6 +17,10 @@ import "./App.css";
 import VerifiedUsers from "./components/VerifiedUsers";
 import ApproveStudents from "./components/ApproveStudents";
 import CreatePost from "./pages/CreatePost";
+import ApprovePosts from './pages/ApprovePosts';
+import AllPostsPage from './pages/AllPostsPage';
+import PendingPostsPage from './pages/PendingPostsPage';
+import ApprovedPostsPage from './pages/ApprovedPostsPage';
 
 const ProtectedRoute = ({ children, allowedRole }) => {
   const { user,loading } = useAuth();
@@ -75,10 +79,42 @@ function App() {
             }
           />
           <Route
+            path="/posts"
+            element={
+              <ProtectedRoute>
+                <AllPostsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/vote"
             element={
               <ProtectedRoute allowedRole="student">
                 <VotingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approve-posts"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <ApprovePosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pending-posts"
+            element={
+              <ProtectedRoute>
+                <PendingPostsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approved-posts"
+            element={
+              <ProtectedRoute>
+                <ApprovedPostsPage />
               </ProtectedRoute>
             }
           />

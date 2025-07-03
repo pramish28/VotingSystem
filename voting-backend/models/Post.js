@@ -1,16 +1,20 @@
 const mongoose = require('mongoose');
 
-const postSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+const commentSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   content: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const postSchema = new mongoose.Schema({
+  content: { type: String, required: true },
+  category: { type: String, required: true },
   image: { type: String },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
   isApproved: { type: Boolean, default: false },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  comments: [{
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    content: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-  }],
+  dislikes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  comments: [commentSchema],
   createdAt: { type: Date, default: Date.now },
 });
 

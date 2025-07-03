@@ -1,50 +1,331 @@
-.post-container {
-  border: 1px solid #ccc;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 5px;
+/* src/styles/Post.css */
+
+/* Post card */
+.post-card {
+  background-color: #ffffff; /* Light mode card */
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-out;
 }
 
+[data-theme="dark"] .post-card {
+  background-color: #1e293b; /* Dark mode card */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.post-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .post-card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Post header */
 .post-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .post-profile-pic {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #14b8a6; /* Teal accent border */
+  transition: transform 0.2s ease;
 }
 
+[data-theme="dark"] .post-profile-pic {
+  border-color: #2dd4bf;
+}
+
+.post-header:hover .post-profile-pic {
+  transform: scale(1.1);
+}
+
+.post-header h4 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b; /* Light mode text */
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+[data-theme="dark"] .post-header h4 {
+  color: #f1f5f9;
+}
+
+/* Post content */
+.post-card p {
+  font-size: 1.1rem;
+  color: #475569; /* Light mode text */
+  line-height: 1.75;
+  margin: 0 0 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+[data-theme="dark"] .post-card p {
+  color: #cbd5e1;
+}
+
+/* Post image */
 .post-image {
   max-width: 100%;
-  margin-top: 10px;
+  height: auto;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 2px solid #e0e7ff; /* Light mode border */
+  transition: transform 0.3s ease;
 }
 
+[data-theme="dark"] .post-image {
+  border-color: #334155;
+}
+
+.post-image:hover {
+  transform: scale(1.02);
+}
+
+/* Post actions */
 .post-actions {
-  margin: 10px 0;
-}
-
-button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #45a049;
-}
-
-form {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
 }
 
-input {
+.post-actions button {
+  background-color: #14b8a6; /* Teal accent */
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+[data-theme="dark"] .post-actions button {
+  background-color: #2dd4bf;
+}
+
+.post-actions button:hover {
+  background-color: #0f766e;
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .post-actions button:hover {
+  background-color: #2dd4bf;
+}
+
+.post-actions span {
+  font-size: 1rem;
+  color: #64748b; /* Light mode text */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-theme="dark"] .post-actions span {
+  color: #94a3b8;
+}
+
+/* Comments section */
+.comments {
+  margin-bottom: 20px;
+}
+
+.comment {
+  background-color: #f1f5f9; /* Light mode comment background */
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  font-size: 1rem;
+  color: #1e293b;
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] .comment {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.comment strong {
+  color: #14b8a6; /* Teal accent for name */
+  font-weight: 600;
+}
+
+[data-theme="dark"] .comment strong {
+  color: #2dd4bf;
+}
+
+/* Comment form */
+.comment-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.comment-form input {
   flex: 1;
-  padding: 5px;
+  padding: 12px;
+  border: 2px solid #e0e7ff; /* Light mode border */
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #1e293b;
+  background-color: #ffffff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+[data-theme="dark"] .comment-form input {
+  border-color: #334155;
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+.comment-form input:focus {
+  outline: none;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
+}
+
+.comment-form button {
+  background-color: #14b8a6; /* Teal accent */
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+[data-theme="dark"] .comment-form button {
+  background-color: #2dd4bf;
+}
+
+.comment-form button:hover {
+  background-color: #0f766e;
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .comment-form button:hover {
+  background-color: #2dd4bf;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .post-card {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .post-header {
+    gap: 12px;
+  }
+
+  .post-profile-pic {
+    width: 40px;
+    height: 40px;
+  }
+
+  .post-header h4 {
+    font-size: 1.25rem;
+  }
+
+  .post-card p {
+    font-size: 1rem;
+  }
+
+  .post-actions {
+    gap: 8px;
+  }
+
+  .post-actions button,
+  .post-actions span {
+    font-size: 0.95rem;
+    padding: 8px 12px;
+  }
+
+  .comment-form input,
+  .comment-form button {
+    font-size: 0.95rem;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-card {
+    padding: 12px;
+  }
+
+  .post-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .post-profile-pic {
+    width: 32px;
+    height: 32px;
+  }
+
+  .post-header h4 {
+    font-size: 1.125rem;
+  }
+
+  .post-card p {
+    font-size: 0.95rem;
+  }
+
+  .post-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .post-actions button,
+  .post-actions span {
+    width: 100%;
+    text-align: center;
+  }
+
+  .comment-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .comment-form input {
+    width: 100%;
+  }
+
+  .comment-form button {
+    width: 100%;
+  }
 }

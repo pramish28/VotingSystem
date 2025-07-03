@@ -1,0 +1,51 @@
+.posts-panel {
+  padding: 40px 20px;
+  background-color: #f7f9fb;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.posts-panel h2 {
+  color: #1c3f6e;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.posts-panel .status-count {
+  color: #4a6572;
+  font-size: 14px;
+  margin-bottom: 30px;
+}
+
+.posts-panel .no-posts-card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 30px;
+  text-align: center;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.posts-panel .no-posts-card img {
+  margin-bottom: 25px;
+}
+
+.posts-panel .no-posts-title {
+  color: #2d4b6d;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.posts-panel .no-posts-subtext {
+  color: #4a6572;
+  font-size: 14px;
+  line-height: 1.5;
+}

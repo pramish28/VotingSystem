@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './StudentDashboard.css';
+import api from '../api'; 
+import Post from '../components/Post'; 
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -79,6 +81,12 @@ const StudentDashboard = () => {
       case 'posts':
         navigate('/posts');
         break;
+       case 'view-pending-posts':
+        navigate('/pending-posts'); 
+        break;
+      case 'view-approved-posts':
+        navigate('/approved-posts'); 
+        break;  
       case 'logout':
         const confirmLogout = window.confirm("Are you sure you want to logout?");
         if (confirmLogout) {
@@ -209,7 +217,8 @@ const StudentDashboard = () => {
               </span>
               <span className="btn-badge">{stats.totalPosts}</span>
             </button>
-
+              <button className="action-btn" onClick={() => handleAction('view-pending-posts')}>🕓 Pending Posts</button>
+            <button className="action-btn" onClick={() => handleAction('view-approved-posts')}>✅ Approved Posts</button>
             <button
               className="action-btn logout-btn"
               onClick={() => handleAction('logout')}
@@ -219,11 +228,12 @@ const StudentDashboard = () => {
                 <span className="btn-text">Logout</span>
               </span>
             </button>
-          </div>
-        </div>
-      </div>
+
+           </div>
+         </div>
+       </div>
     </div>
-  );
+   );
 };
 
-export default StudentDashboard;
+ export default StudentDashboard;
