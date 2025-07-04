@@ -1,38 +1,3 @@
-// import React, { useEffect, useState } from 'react';
-// import api from '../api';
-// import Post from '../components/Post';
-// import '../pages/AllPostsPage.css'; 
-
-// const AllPostsPage = () => {
-//   const [allPosts, setAllPosts] = useState([]);
-
-//   useEffect(() => {
-//     const fetchAllApprovedPosts = async () => {
-//       try {
-//         const res = await api.get('/api/post');
-//         setAllPosts(res.data || []);
-//       } catch (err) {
-//         console.error('Failed to load all posts:', err);
-//       }
-//     };
-
-//     fetchAllApprovedPosts();
-//   }, []);
-
-//   return (
-//     <div className="posts-panel">
-//       <h2>All Approved Posts from All Users</h2>
-//       {allPosts.length === 0 ? (
-//         <p>No posts available</p>
-//       ) : (
-//         allPosts.map((post) => <Post key={post._id} post={post} />)
-//       )}
-//     </div>
-//   );
-// };
-
-// export default AllPostsPage;
-
 import React, { useEffect, useState } from 'react';
 import api from '../api';
 import Post from '../components/Post';

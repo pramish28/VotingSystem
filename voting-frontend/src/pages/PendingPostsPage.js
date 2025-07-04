@@ -1,35 +1,3 @@
-// import React, { useEffect, useState } from 'react';
-// import api from '../api';
-// import Post from '../components/Post';
-
-// const PendingPostsPage = () => {
-//   const [pendingPosts, setPendingPosts] = useState([]);
-
-//   useEffect(() => {
-//     const fetchPosts = async () => {
-//       try {
-//         const res = await api.get('/api/post/my-posts');
-//         setPendingPosts(res.data.pending || []);
-//       } catch (err) {
-//         console.error('Error loading pending posts:', err);
-//       }
-//     };
-//     fetchPosts();
-//   }, []);
-
-//   return (
-//     <div className="posts-panel">
-//       <h2>My Pending Posts</h2>
-//       {pendingPosts.length === 0 ? (
-//         <p>No pending posts</p>
-//       ) : (
-//         pendingPosts.map((post) => <Post key={post._id} post={post} />)
-//       )}
-//     </div>
-//   );
-// };
-
-// export default PendingPostsPage;
 import React, { useEffect, useState } from 'react';
 import api from '../api';
 import Post from '../components/Post';
