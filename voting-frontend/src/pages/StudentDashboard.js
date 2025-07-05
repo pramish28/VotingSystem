@@ -73,7 +73,7 @@ const StudentDashboard = () => {
         navigate('/election-news');
         break;
       case 'vote':
-        navigate('/voting');
+        navigate('/vote');
         break;
       case 'create-post':
         navigate('/create-post');

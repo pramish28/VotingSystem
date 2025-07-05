@@ -1,0 +1,90 @@
+.election-form {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.election-form h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.election-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.election-form input,
+.election-form select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.election-form h3 {
+  margin-bottom: 15px;
+}
+
+.party-section,
+.independent-candidate {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+}
+
+.candidate-section,
+.member-section {
+  margin-bottom: 15px;
+}
+
+.member-section input[type="text"] {
+  width: 60%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.candidate-photo {
+  max-width: 100px;
+  margin-top: 5px;
+  display: block;
+}
+
+.add-button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.add-button:hover {
+  background-color: #0056b3;
+}
+
+.submit-button {
+  padding: 15px 30px;
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.submit-button:hover {
+  background-color: #218838;
+}
+
+.party-sections,
+.independent-section,
+.samanupatik-section {
+  margin-bottom: 30px;
+}
