@@ -1,64 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import './ResultPage.css';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-function ResultPage() {
-  const [results, setResults] = useState([]);
-  const [probabilities, setProbabilities] = useState([]);
+export default function ResultPage() {
+  const [params] = useSearchParams();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [results, setResults] = useState([]); // [{ candidateId, position, name, party, votes, percentage }]
+  const [electionId, setElectionId] = useState('');
 
   useEffect(() => {
-    const fetchResults = async () => {
+    (async () => {
       try {
-        const res = await api.get('/vote/results');
-        setResults(res.data.results);
-        setProbabilities(res.data.probabilities);
-      } catch (err) {
-        console.error('Failed to fetch results:', err);
+        const eid = params.get('electionId');
+        const url = eid ? `/api/vote/results?electionId=${eid}` : '/api/vote/results';
+        const res = await api.get(url);
+        setElectionId(res.data?.electionId || '');
+        setResults(res.data?.results || []);
+      } catch (e) {
+        console.error('Load results error:', e);
+        setError(e.response?.data?.message || e.message || 'Failed to load results');
+      } finally {
+        setLoading(false);
       }
-    };
-    fetchResults();
-  }, []);
+    })();
+  }, [params]);
 
-  const chartData = {
-    labels: results.map((r) => r.candidateName),
-    datasets: [
-      {
-        label: 'Votes',
-        data: results.map((r) => r.votes),
-        backgroundColor: '#4CAF50',
-        borderColor: '#388E3C',
-        borderWidth: 1,
-      },
-    ],
+  const grouped = useMemo(() => {
+    const g = { president: [], vicePresident: [], secretary: [], treasurer: [], members: [] };
+    for (const r of results) {
+      if (g[r.position]) g[r.position].push(r);
+    }
+    Object.keys(g).forEach(k => g[k].sort((a,b) => b.votes - a.votes)); // winner first
+    return g;
+  }, [results]);
+
+  if (loading) return <div className="result-container"><p>Loading results…</p></div>;
+  if (error) return <div className="result-container"><p className="error">{error}</p></div>;
+
+  const Section = ({ title, data }) => {
+    const total = data.reduce((s, r) => s + r.votes, 0);
+    const topVotes = data[0]?.votes || 0;
+    return (
+      <div className="result-section">
+        <h3>{title}</h3>
+        {data.length === 0 && <p>No votes yet.</p>}
+        {data.map((r, idx) => {
+          const widthPct = total ? r.votes / total * 100 : 0;
+          const isWinner = idx === 0 && r.votes === topVotes;
+          return (
+            <div key={`${r.position}-${r.candidateId}`} className={`bar-row ${isWinner ? 'winner' : ''}`}>
+              <div className="bar-label">
+                <span className="candidate-name">{r.name}</span>
+                {r.party ? <span className="candidate-party"> ({r.party})</span> : null}
+              </div>
+              <div className="bar-track">
+                <div className="bar-fill" style={{ width: `${widthPct}%` }} />
+              </div>
+              <div className="bar-stats">
+                <span className="votes">{r.votes} vote{r.votes === 1 ? '' : 's'}</span>
+                <span className="percent">{r.percentage.toFixed(2)}%</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
-    <div className="results-container">
+    <div className="result-container">
       <h2>Election Results</h2>
-      <Bar
-        data={chartData}
-        options={{
-          scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'Votes' } },
-            x: { title: { display: true, text: 'Candidates' } },
-          },
-          plugins: {
-            title: { display: true, text: 'Election Results 2025' },
-          },
-        }}
-      />
-      <h3>Win Probability (Based on Post Interactions)</h3>
-      {probabilities.map((p) => (
-        <p key={p.candidateId}>
-          {p.candidateName}: {(p.probability * 100).toFixed(2)}%
-        </p>
-      ))}
+      {electionId && <p className="muted">Election ID: {electionId}</p>}
+
+      <Section title="President" data={grouped.president} />
+      <Section title="Vice President" data={grouped.vicePresident} />
+      <Section title="Secretary" data={grouped.secretary} />
+      <Section title="Treasurer" data={grouped.treasurer} />
+      <Section title="Members" data={grouped.members} />
     </div>
   );
 }
-
-export default ResultPage;

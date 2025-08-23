@@ -3,3 +3,17 @@
   margin: 50px auto;
   padding: 20px;
 }
+.result-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.result-section { margin: 24px 0; }
+.bar-row { display: grid; grid-template-columns: 1fr 3fr auto; gap: 12px; align-items: center; padding: 6px 0; }
+.bar-row.winner { background: rgba(0, 200, 0, 0.06); border-radius: 8px; }
+.bar-label { font-weight: 500; }
+.bar-track { height: 12px; background: #eee; border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; background: #4a90e2; }
+.bar-stats { min-width: 140px; display: flex; gap: 8px; justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.error { color: #c00; }
+.muted { color: #666; }

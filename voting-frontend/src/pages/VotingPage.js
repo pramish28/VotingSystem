@@ -1,11 +1,356 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import React, { useEffect, useMemo, useState } from 'react';
+// import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+// import api from '../api';
+// import './VotingPage.css';
+
+// const POSITION_KEYS = ['president', 'vicePresident', 'secretary', 'treasurer', 'members'];
+
+// export default function VotingPage() {
+//   const navigate = useNavigate();
+//   const params = useParams();
+//   const [sp] = useSearchParams();
+//   const urlElectionId = sp.get('electionId') || params.electionId || '';
+
+//   const [loading, setLoading] = useState(true);
+//   const [submitting, setSubmitting] = useState(false);
+//   const [error, setError] = useState('');
+
+//   const [available, setAvailable] = useState([]); // list of elections not yet voted by this user
+//   const [alreadyVoted, setAlreadyVoted] = useState(false);
+
+//   const [userVoterId, setUserVoterId] = useState('');
+//   const [voterIdInput, setVoterIdInput] = useState('');
+
+//   const [phase, setPhase] = useState('select'); // 'select' -> 'review' -> 'verify'
+//   const [electionId, setElectionId] = useState('');
+//   const [title, setTitle] = useState('');
+
+//   const [candidates, setCandidates] = useState({
+//     president: [],
+//     vicePresident: [],
+//     secretary: [],
+//     treasurer: [],
+//     members: [],
+//   });
+
+//   const [selected, setSelected] = useState({
+//     president: null,
+//     vicePresident: null,
+//     secretary: null,
+//     treasurer: null,
+//     members: [],
+//   });
+
+//   const hasAnySelection = useMemo(() => {
+//     return !!(
+//       selected.president ||
+//       selected.vicePresident ||
+//       selected.secretary ||
+//       selected.treasurer ||
+//       (selected.members && selected.members.length > 0)
+//     );
+//   }, [selected]);
+
+//   // Load either: available list (no electionId) OR a ballot (with electionId)
+//   useEffect(() => {
+//     let alive = true;
+//     (async () => {
+//       try {
+//         setLoading(true);
+//         setError('');
+
+//         // who am i (voterId)
+//         const me = await api.get('/api/user/profile');
+//         if (!alive) return;
+//         setUserVoterId(me.data?.voterId || '');
+
+//         if (!urlElectionId) {
+//           // Show only elections user hasn't voted yet
+//           const list = await api.get('/api/election/available?scope=active');
+//           if (!alive) return;
+//           setAvailable(list.data || []);
+//           setAlreadyVoted(false);
+//           setElectionId('');
+//           setTitle('');
+//           setCandidates({ president: [], vicePresident: [], secretary: [], treasurer: [], members: [] });
+//           setPhase('select');
+//         } else {
+//           // Load specific election's candidates
+//           const res = await api.get(`/api/election/${urlElectionId}/candidates`);
+//           if (!alive) return;
+//           const payload = res.data || {};
+//           setElectionId(payload.electionId || '');
+//           setTitle(payload.title || '');
+//           setCandidates({
+//             president: payload.positions?.president || [],
+//             vicePresident: payload.positions?.vicePresident || [],
+//             secretary: payload.positions?.secretary || [],
+//             treasurer: payload.positions?.treasurer || [],
+//             members: payload.positions?.members || [],
+//           });
+//           setAlreadyVoted(false);
+//         }
+//       } catch (e) {
+//         const status = e.response?.status;
+//         const data = e.response?.data;
+
+//         // Already voted: hide ballot and show info
+//         if (urlElectionId && status === 403 && data?.alreadyVoted) {
+//           if (data.electionId) setElectionId(data.electionId);
+//           if (data.title) setTitle(data.title);
+//           setAlreadyVoted(true);
+//           setCandidates({ president: [], vicePresident: [], secretary: [], treasurer: [], members: [] });
+//           setError('You have already voted in this election. Stay updated for another election.');
+//         } else {
+//           console.error('VotingPage load error:', e);
+//           setError(data?.message || e.message || 'Failed to load voting page data');
+//         }
+//       } finally {
+//         if (alive) setLoading(false);
+//       }
+//     })();
+//     return () => { alive = false; };
+//   }, [urlElectionId]);
+
+//   // ✅ Fixed helper: use 'cand', not 'c'
+//   const pick = (position, cand) => {
+//     setError('');
+//     if (position === 'members') {
+//       setSelected(prev => {
+//         const exists = prev.members.some(m => m.candidateId === cand.candidateId);
+//         if (exists) {
+//           return { ...prev, members: prev.members.filter(m => m.candidateId !== cand.candidateId) };
+//         }
+//         if (prev.members.length >= 12) {
+//           setError('You can select up to 12 members only');
+//           return prev;
+//         }
+//         return { ...prev, members: [...prev.members, cand] };
+//       });
+//     } else {
+//       setSelected(prev => ({ ...prev, [position]: cand }));
+//     }
+//   };
+
+//   const proceedToReview = () => {
+//     setError('');
+//     if (!hasAnySelection) return setError('Please select at least one candidate.');
+//     setPhase('review');
+//   };
+
+//   const proceedToVerify = () => {
+//     setError('');
+//     setPhase('verify');
+//   };
+
+//   const backToSelect = () => {
+//     setError('');
+//     setPhase('select');
+//   };
+
+//   const castAndConfirm = async () => {
+//     try {
+//       setError('');
+//       if (!voterIdInput) return setError('Please enter your Voter ID');
+//       if (voterIdInput !== userVoterId) return setError('Voter ID does not match your account');
+
+//       const votes = [];
+//       if (selected.president)     votes.push({ position: 'president',     candidateId: selected.president.candidateId });
+//       if (selected.vicePresident) votes.push({ position: 'vicePresident', candidateId: selected.vicePresident.candidateId });
+//       if (selected.secretary)     votes.push({ position: 'secretary',     candidateId: selected.secretary.candidateId });
+//       if (selected.treasurer)     votes.push({ position: 'treasurer',     candidateId: selected.treasurer.candidateId });
+//       for (const m of (selected.members || [])) votes.push({ position: 'members', candidateId: m.candidateId });
+//       if (votes.length === 0) return setError('No candidates selected to vote for.');
+
+//       setSubmitting(true);
+
+//       // Submit pending (ignore individual failures)
+//       const payloads = votes.map(v => ({ electionId, voterId: voterIdInput, position: v.position, candidateId: v.candidateId }));
+//       await Promise.allSettled(payloads.map(b => api.post('/api/vote', b)));
+
+//       // Confirm all
+//       await api.post('/api/vote/confirm-all', { electionId, voterId: voterIdInput });
+
+//       // Let Result page know which election to show
+//       sessionStorage.setItem('lastElectionVoted', electionId);
+//       navigate('/result');
+//     } catch (e) {
+//       console.error('Voting failed:', e);
+//       setError(e.response?.data?.message || 'Voting failed');
+//     } finally {
+//       setSubmitting(false);
+//     }
+//   };
+
+//   // ---------- RENDER ----------
+//   if (loading) {
+//     return <div className="voting-container"><p>Loading…</p></div>;
+//   }
+
+//   // No electionId in URL => show available elections (not voted)
+//   if (!urlElectionId) {
+//     return (
+//       <div className="voting-container">
+//         <h2>Available Elections</h2>
+//         {error && <p className="error">{error}</p>}
+
+//         {!available.length ? (
+//           <p>No eligible elections right now. You may have already voted in the active ones.</p>
+//         ) : (
+//           <div className="election-list">
+//             {available.map(e => (
+//               <div key={e._id} className="election-card">
+//                 <div className="election-title">{e.electionTitle}</div>
+//                 <div className="election-dates">
+//                   {new Date(e.startDate).toLocaleDateString()} – {new Date(e.endDate).toLocaleDateString()}
+//                 </div>
+//                 <button onClick={() => navigate(`/vote?electionId=${e._id}`)}>
+//                   Vote
+//                 </button>
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </div>
+//     );
+//   }
+
+//   // electionId present => ballot or "already voted" info
+//   return (
+//     <div className="voting-container">
+//       <h2>{title ? `Vote: ${title}` : 'Vote'}</h2>
+
+//       {alreadyVoted ? (
+//         <div className="info-box">
+//           <p>You have already voted in this election. Stay updated for another election.</p>
+//           <div className="verify-actions" style={{ marginTop: 12 }}>
+//             <button onClick={() => navigate('/vote')}>Back to elections</button>
+//             <button
+//               onClick={() => { sessionStorage.setItem('lastElectionVoted', electionId); navigate('/result'); }}
+//               style={{ marginLeft: 8 }}
+//             >
+//               View results
+//             </button>
+//           </div>
+//         </div>
+//       ) : (
+//         <>
+//           {error && <p className="error">{error}</p>}
+
+//           {phase === 'select' && (
+//             <>
+//               {POSITION_KEYS.map(position => (
+//                 <div key={position} className="position-box">
+//                   <h3>{position === 'members' ? 'Members (Select up to 12)' : position.charAt(0).toUpperCase() + position.slice(1)}</h3>
+//                   {candidates[position]?.length ? (
+//                     candidates[position].map(c => (
+//                       <div key={c.candidateId} className="candidate-card">
+//                         {c.photo && (
+//                           <img
+//                             src={c.photo}
+//                             alt={c.name}
+//                             className="candidate-photo"
+//                             onError={(e) => (e.currentTarget.src = '/placeholder.jpg')}
+//                           />
+//                         )}
+//                         <label>
+//                           <input
+//                             type={position === 'members' ? 'checkbox' : 'radio'}
+//                             name={position}
+//                             checked={
+//                               position === 'members'
+//                                 ? selected.members.some(m => m.candidateId === c.candidateId)
+//                                 : selected[position]?.candidateId === c.candidateId
+//                             }
+//                             onChange={() => pick(position, c)} 
+//                           />
+//                           {c.name} {c.party ? `(${c.party})` : ''}
+//                         </label>
+//                       </div>
+//                     ))
+//                   ) : (
+//                     <p>No candidates available for {position}</p>
+//                   )}
+//                 </div>
+//               ))}
+//               <button onClick={proceedToReview} disabled={!hasAnySelection}>Proceed</button>
+//             </>
+//           )}
+
+//           {phase === 'review' && (
+//             <div className="review-box">
+//               <h3>Review your selections</h3>
+//               <ul className="review-list">
+//                 {selected.president     && <li>President: {selected.president.name} {selected.president.party ? `(${selected.president.party})` : ''}</li>}
+//                 {selected.vicePresident && <li>Vice President: {selected.vicePresident.name} {selected.vicePresident.party ? `(${selected.vicePresident.party})` : ''}</li>}
+//                 {selected.secretary     && <li>Secretary: {selected.secretary.name} {selected.secretary.party ? `(${selected.secretary.party})` : ''}</li>}
+//                 {selected.treasurer     && <li>Treasurer: {selected.treasurer.name} {selected.treasurer.party ? `(${selected.treasurer.party})` : ''}</li>}
+//                 {selected.members.length > 0 && (
+//                   <li>Members: {selected.members.map(m => `${m.name}${m.party ? ` (${m.party})` : ''}`).join(', ')}</li>
+//                 )}
+//               </ul>
+//               <p className="confirm-text">You are going to vote for the candidate(s) listed above.</p>
+//               <div className="review-actions">
+//                 <button onClick={backToSelect}>Edit selection</button>
+//                 <button onClick={proceedToVerify}>Continue</button>
+//               </div>
+//             </div>
+//           )}
+
+//           {phase === 'verify' && (
+//             <div className="verify-box">
+//               <h3>Verify your identity</h3>
+//               <p>Enter your Voter ID (must match your account):</p>
+//               <input
+//                 type="text"
+//                 placeholder="Your Voter ID"
+//                 value={voterIdInput}
+//                 onChange={(e) => setVoterIdInput(e.target.value)}
+//               />
+//               <div className="verify-actions">
+//                 <button onClick={() => setPhase('review')}>Back</button>
+//                 <button onClick={castAndConfirm} disabled={submitting}>
+//                   {submitting ? 'Submitting…' : 'Cast vote'}
+//                 </button>
+//               </div>
+//             </div>
+//           )}
+//         </>
+//       )}
+//     </div>
+//   );
+// }
+
+// src/pages/VotingPage.js
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import './VotingPage.css';
 
-function VotingPage() {
-  const [voterId, setVoterId] = useState('');
-  const [userVoterId, setUserVoterId] = useState(''); // Logged-in user's voterId
+const POSITION_KEYS = ['president', 'vicePresident', 'secretary', 'treasurer', 'members'];
+
+export default function VotingPage() {
+  const navigate = useNavigate();
+  const params = useParams();
+  const [sp] = useSearchParams();
+  const urlElectionId = sp.get('electionId') || params.electionId || '';
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  // List of elections the current user has NOT confirmed votes in
+  const [available, setAvailable] = useState([]);
+
+  // Ballot state
+  const [alreadyVoted, setAlreadyVoted] = useState(false);
+  const [userVoterId, setUserVoterId] = useState('');
+  const [voterIdInput, setVoterIdInput] = useState('');
+
+  const [phase, setPhase] = useState('select'); // 'select' → 'review' → 'verify'
+  const [electionId, setElectionId] = useState('');
+  const [title, setTitle] = useState('');
+
   const [candidates, setCandidates] = useState({
     president: [],
     vicePresident: [],
@@ -13,217 +358,280 @@ function VotingPage() {
     treasurer: [],
     members: [],
   });
-  const [selectedCandidates, setSelectedCandidates] = useState({
+
+  const [selected, setSelected] = useState({
     president: null,
     vicePresident: null,
     secretary: null,
     treasurer: null,
     members: [],
   });
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  // Fetch candidates and user voterId on mount
+  const hasAnySelection = useMemo(() => {
+    return !!(
+      selected.president ||
+      selected.vicePresident ||
+      selected.secretary ||
+      selected.treasurer ||
+      (selected.members && selected.members.length > 0)
+    );
+  }, [selected]);
+
+  // Load profile + either election list or specific ballot
   useEffect(() => {
-    const fetchData = async () => {
+    let alive = true;
+    (async () => {
       try {
-        // Fetch user profile to get voterId
-        const userRes = await api.get('/api/user/profile');
-        setUserVoterId(userRes.data.voterId || '');
+        setLoading(true);
+        setError('');
 
-        // Fetch candidates
-        const candidatesRes = await api.get('/api/election/candidates');
-        setCandidates(candidatesRes.data);
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch data');
-        setTimeout(() => navigate('/dashboard', { state: { error: 'Failed to load voting page data' } }), 2000);
-      }
-    };
-    fetchData();
-  }, [navigate]);
+        // Who am I? (to get voterId)
+        const me = await api.get('/api/user/profile');
+        if (!alive) return;
+        setUserVoterId(me.data?.voterId || '');
 
-  const handleCandidateSelect = (position, candidate) => {
-    if (position === 'members') {
-      setSelectedCandidates((prev) => {
-        const currentMembers = prev.members || [];
-        if (currentMembers.some((c) => c._id === candidate._id)) {
-          return {
-            ...prev,
-            members: currentMembers.filter((c) => c._id !== candidate._id),
-          };
+        if (!urlElectionId) {
+          // 👉 Always fetch ALL elections the user hasn't voted in
+          const all = await api.get('/api/election/available?scope=all');
+          if (!alive) return;
+          setAvailable(all.data || []);
+          setAlreadyVoted(false);
+          setElectionId('');
+          setTitle('');
+          setCandidates({ president: [], vicePresident: [], secretary: [], treasurer: [], members: [] });
+          setPhase('select');
+        } else {
+          // Load specific election's candidates
+          const res = await api.get(`/api/election/${urlElectionId}/candidates`);
+          if (!alive) return;
+          const payload = res.data || {};
+          setElectionId(payload.electionId || '');
+          setTitle(payload.title || '');
+          setCandidates({
+            president: payload.positions?.president || [],
+            vicePresident: payload.positions?.vicePresident || [],
+            secretary: payload.positions?.secretary || [],
+            treasurer: payload.positions?.treasurer || [],
+            members: payload.positions?.members || [],
+          });
+          setAlreadyVoted(false);
         }
-        if (currentMembers.length >= 12) {
+      } catch (e) {
+        const status = e.response?.status;
+        const data = e.response?.data;
+
+        // If the user already voted in this election, show info and hide ballot
+        if (urlElectionId && status === 403 && data?.alreadyVoted) {
+          if (data.electionId) setElectionId(data.electionId);
+          if (data.title) setTitle(data.title);
+          setAlreadyVoted(true);
+          setCandidates({ president: [], vicePresident: [], secretary: [], treasurer: [], members: [] });
+          setError('You have already voted in this election. Stay updated for another election.');
+        } else {
+          console.error('VotingPage load error:', e);
+          setError(data?.message || e.message || 'Failed to load voting page data');
+        }
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [urlElectionId]);
+
+  // Select helpers
+  const pick = (position, cand) => {
+    setError('');
+    if (position === 'members') {
+      setSelected(prev => {
+        const exists = prev.members.some(m => m.candidateId === cand.candidateId);
+        if (exists) {
+          return { ...prev, members: prev.members.filter(m => m.candidateId !== cand.candidateId) };
+        }
+        if (prev.members.length >= 12) {
           setError('You can select up to 12 members only');
           return prev;
         }
-        return { ...prev, members: [...currentMembers, candidate] };
+        return { ...prev, members: [...prev.members, cand] };
       });
     } else {
-      setSelectedCandidates((prev) => ({ ...prev, [position]: candidate }));
+      setSelected(prev => ({ ...prev, [position]: cand }));
     }
-    setError(''); // Clear error on selection
   };
 
-  const handleVote = async () => {
-    if (!voterId) {
-      setError('Please enter your voter ID');
-      return;
-    }
-    if (voterId !== userVoterId) {
-      setError('Voter ID does not match your account');
-      setTimeout(() => navigate('/dashboard', { state: { error: 'Invalid voter ID' } }), 2000);
-      return;
-    }
-    if (
-      !selectedCandidates.president ||
-      !selectedCandidates.vicePresident ||
-      !selectedCandidates.secretary ||
-      !selectedCandidates.treasurer
-    ) {
-      setError('Please select one candidate for each position');
-      return;
-    }
+  const proceedToReview = () => {
+    setError('');
+    if (!hasAnySelection) return setError('Please select at least one candidate.');
+    setPhase('review');
+  };
 
+  const proceedToVerify = () => setPhase('verify');
+  const backToSelect = () => setPhase('select');
+
+  // Submit pending votes → confirm-all → redirect /result
+  const castAndConfirm = async () => {
     try {
-      const votes = [
-        { position: 'president', candidateId: selectedCandidates.president?._id },
-        { position: 'vicePresident', candidateId: selectedCandidates.vicePresident?._id },
-        { position: 'secretary', candidateId: selectedCandidates.secretary?._id },
-        { position: 'treasurer', candidateId: selectedCandidates.treasurer?._id },
-        ...(selectedCandidates.members || []).map((member) => ({
-          position: 'members',
-          candidateId: member._id,
-        })),
-      ];
+      setError('');
+      if (!voterIdInput) return setError('Please enter your Voter ID');
+      if (voterIdInput !== userVoterId) return setError('Voter ID does not match your account');
 
-      for (const vote of votes) {
-        if (vote.candidateId) {
-          await api.post('/api/vote', { voterId, candidateId: vote.candidateId, position: vote.position });
-        }
-      }
-      setShowConfirmation(true);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Vote submission failed');
-      setTimeout(() => navigate('/dashboard', { state: { error: 'Vote submission failed' } }), 2000);
+      const votes = [];
+      if (selected.president)     votes.push({ position: 'president',     candidateId: selected.president.candidateId });
+      if (selected.vicePresident) votes.push({ position: 'vicePresident', candidateId: selected.vicePresident.candidateId });
+      if (selected.secretary)     votes.push({ position: 'secretary',     candidateId: selected.secretary.candidateId });
+      if (selected.treasurer)     votes.push({ position: 'treasurer',     candidateId: selected.treasurer.candidateId });
+      for (const m of (selected.members || [])) votes.push({ position: 'members', candidateId: m.candidateId });
+      if (votes.length === 0) return setError('No candidates selected to vote for.');
+
+      setSubmitting(true);
+
+      // Submit pending (idempotent per position/candidate)
+      const payloads = votes.map(v => ({ electionId, voterId: voterIdInput, position: v.position, candidateId: v.candidateId }));
+      await Promise.allSettled(payloads.map(b => api.post('/api/vote', b)));
+
+      // Confirm all for this election/voter
+      await api.post('/api/vote/confirm-all', { electionId, voterId: voterIdInput });
+
+      // Remember which election to show on /result
+      sessionStorage.setItem('lastElectionVoted', electionId);
+      navigate('/result');
+    } catch (e) {
+      console.error('Voting failed:', e);
+      setError(e.response?.data?.message || 'Voting failed');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const confirmVote = async () => {
-    try {
-      const votes = [
-        { position: 'president', candidateId: selectedCandidates.president?._id },
-        { position: 'vicePresident', candidateId: selectedCandidates.vicePresident?._id },
-        { position: 'secretary', candidateId: selectedCandidates.secretary?._id },
-        { position: 'treasurer', candidateId: selectedCandidates.treasurer?._id },
-        ...(selectedCandidates.members || []).map((member) => ({
-          position: 'members',
-          candidateId: member._id,
-        })),
-      ];
+  // ---------- UI ----------
+  if (loading) return <div className="voting-container"><p>Loading…</p></div>;
 
-      for (const vote of votes) {
-        if (vote.candidateId) {
-          await api.post('/api/vote/confirm', { voterId, candidateId: vote.candidateId, position: vote.position });
-        }
-      }
-      navigate('/results');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Vote confirmation failed');
-      setTimeout(() => navigate('/dashboard', { state: { error: 'Vote confirmation failed' } }), 2000);
-    }
-  };
-
-  if (showConfirmation) {
+  // No election selected → list all elections you haven't voted in
+  if (!urlElectionId) {
     return (
-      <div className="confirmation-container">
-        <h2>Confirm Your Vote</h2>
-        <p>You have selected:</p>
-        {selectedCandidates.president && (
-          <p>President: {selectedCandidates.president.name} ({selectedCandidates.president.party})</p>
+      <div className="voting-container">
+        <h2>Available Elections</h2>
+        {error && <p className="error">{error}</p>}
+        {!available.length ? (
+          <p>No eligible elections right now. You may have already voted in all of them.</p>
+        ) : (
+          <div className="election-list">
+            {available.map(el => (
+              <div key={el._id} className="election-card">
+                <div className="election-title">{el.electionTitle}</div>
+                <div className="election-dates">
+                  {new Date(el.startDate).toLocaleDateString()} – {new Date(el.endDate).toLocaleDateString()}
+                </div>
+                <button onClick={() => navigate(`/vote?electionId=${el._id}`)}>Vote</button>
+              </div>
+            ))}
+          </div>
         )}
-        {selectedCandidates.vicePresident && (
-          <p>Vice President: {selectedCandidates.vicePresident.name} ({selectedCandidates.vicePresident.party})</p>
-        )}
-        {selectedCandidates.secretary && (
-          <p>Secretary: {selectedCandidates.secretary.name} ({selectedCandidates.secretary.party})</p>
-        )}
-        {selectedCandidates.treasurer && (
-          <p>Treasurer: {selectedCandidates.treasurer.name} ({selectedCandidates.treasurer.party})</p>
-        )}
-        {selectedCandidates.members.length > 0 && (
-          <p>Members: {selectedCandidates.members.map((m) => `${m.name} (${m.party})`).join(', ')}</p>
-        )}
-        <button onClick={confirmVote}>Confirm Vote</button>
-        <button onClick={() => setShowConfirmation(false)}>Cancel</button>
       </div>
     );
   }
 
+  // Election selected → ballot (or "already voted" info)
   return (
     <div className="voting-container">
-      <h2>Vote for FSU Election</h2>
-      <div className="voter-id-section">
-        <label>Enter Voter ID</label>
-        <input
-          type="text"
-          placeholder="Your Voter ID"
-          value={voterId}
-          onChange={(e) => setVoterId(e.target.value)}
-          required
-        />
-      </div>
-      {error && <p className="error">{error}</p>}
+      <h2>{title ? `Vote: ${title}` : 'Vote'}</h2>
 
-      {['president', 'vicePresident', 'secretary', 'treasurer', 'members'].map((position) => (
-        <div key={position} className="position-box">
-          <h3>{position === 'members' ? 'Members (Select up to 12)' : position.charAt(0).toUpperCase() + position.slice(1)}</h3>
-          {candidates[position]?.length > 0 ? (
-            candidates[position].map((candidate) => (
-              <div key={candidate._id} className="candidate-card">
-                {candidate.photo && (
-                  <img
-                    src={`http://localhost:5000${candidate.photo}`}
-                    alt={candidate.name}
-                    className="candidate-photo"
-                    onError={(e) => (e.target.src = '/placeholder.jpg')}
-                  />
-                )}
-                <label>
-                  <input
-                    type={position === 'members' ? 'checkbox' : 'radio'}
-                    name={position}
-                    checked={
-                      position === 'members'
-                        ? selectedCandidates.members?.some((c) => c._id === candidate._id)
-                        : selectedCandidates[position]?._id === candidate._id
-                    }
-                    onChange={() => handleCandidateSelect(position, candidate)}
-                  />
-                  {candidate.name} ({candidate.party})
-                </label>
-              </div>
-            ))
-          ) : (
-            <p>No candidates available for {position}</p>
-          )}
+      {alreadyVoted ? (
+        <div className="info-box">
+          <p>You have already voted in this election. Stay updated for another election.</p>
+          <div className="verify-actions" style={{ marginTop: 12 }}>
+            <button onClick={() => navigate('/vote')}>Back to elections</button>
+            <button
+              onClick={() => { sessionStorage.setItem('lastElectionVoted', electionId); navigate('/result'); }}
+              style={{ marginLeft: 8 }}
+            >
+              View results
+            </button>
+          </div>
         </div>
-      ))}
+      ) : (
+        <>
+          {error && <p className="error">{error}</p>}
 
-      <button
-        onClick={handleVote}
-        disabled={
-          !voterId ||
-          !selectedCandidates.president ||
-          !selectedCandidates.vicePresident ||
-          !selectedCandidates.secretary ||
-          !selectedCandidates.treasurer
-        }
-      >
-        Submit Vote
-      </button>
+          {phase === 'select' && (
+            <>
+              {POSITION_KEYS.map(position => (
+                <div key={position} className="position-box">
+                  <h3>{position === 'members' ? 'Members (Select up to 12)' : position.charAt(0).toUpperCase() + position.slice(1)}</h3>
+                  {candidates[position]?.length ? (
+                    candidates[position].map(cand => (
+                      <div key={cand.candidateId} className="candidate-card">
+                        {cand.photo && (
+                          <img
+                            src={cand.photo}
+                            alt={cand.name}
+                            className="candidate-photo"
+                            onError={(e) => (e.currentTarget.src = '/placeholder.jpg')}
+                          />
+                        )}
+                        <label>
+                          <input
+                            type={position === 'members' ? 'checkbox' : 'radio'}
+                            name={position}
+                            checked={
+                              position === 'members'
+                                ? selected.members.some(m => m.candidateId === cand.candidateId)
+                                : selected[position]?.candidateId === cand.candidateId
+                            }
+                            onChange={() => pick(position, cand)}
+                          />
+                          {cand.name} {cand.party ? `(${cand.party})` : ''}
+                        </label>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No candidates available for {position}</p>
+                  )}
+                </div>
+              ))}
+              <button onClick={proceedToReview} disabled={!hasAnySelection}>Proceed</button>
+            </>
+          )}
+
+          {phase === 'review' && (
+            <div className="review-box">
+              <h3>Review your selections</h3>
+              <ul className="review-list">
+                {selected.president     && <li>President: {selected.president.name} {selected.president.party ? `(${selected.president.party})` : ''}</li>}
+                {selected.vicePresident && <li>Vice President: {selected.vicePresident.name} {selected.vicePresident.party ? `(${selected.vicePresident.party})` : ''}</li>}
+                {selected.secretary     && <li>Secretary: {selected.secretary.name} {selected.secretary.party ? `(${selected.secretary.party})` : ''}</li>}
+                {selected.treasurer     && <li>Treasurer: {selected.treasurer.name} {selected.treasurer.party ? `(${selected.treasurer.party})` : ''}</li>}
+                {selected.members.length > 0 && (
+                  <li>Members: {selected.members.map(m => `${m.name}${m.party ? ` (${m.party})` : ''}`).join(', ')}</li>
+                )}
+              </ul>
+              <p className="confirm-text">You are going to vote for the candidate(s) listed above.</p>
+              <div className="review-actions">
+                <button onClick={backToSelect}>Edit selection</button>
+                <button onClick={proceedToVerify}>Continue</button>
+              </div>
+            </div>
+          )}
+
+          {phase === 'verify' && (
+            <div className="verify-box">
+              <h3>Verify your identity</h3>
+              <p>Enter your Voter ID (must match your account):</p>
+              <input
+                type="text"
+                placeholder="Your Voter ID"
+                value={voterIdInput}
+                onChange={(e) => setVoterIdInput(e.target.value)}
+              />
+              <div className="verify-actions">
+                <button onClick={() => setPhase('review')}>Back</button>
+                <button onClick={castAndConfirm} disabled={submitting}>
+                  {submitting ? 'Submitting…' : 'Cast vote'}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
-
-export default VotingPage;

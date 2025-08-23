@@ -1,177 +1,71 @@
 // const express = require('express');
 // const router = express.Router();
 // const authMiddleware = require('../middleware/auth');
-// const Candidate = require('../models/Candidate');
-// const Election = require('../models/Election');
-// const Vote = require('../models/Vote');
-// const User = require('../models/User');
+// const upload = require('../middleware/upload');
 
-// // Mock news data
-// const mockNews = [
-//   { type: 'Update', typeColor: 'bg-blue-500', date: '2025-06-04', title: 'Election Started', content: 'The election has officially begun.' },
-//   { type: 'Announcement', typeColor: 'bg-green-500', date: '2025-06-03', title: 'Candidate List', content: 'Candidates have been announced.' },
-// ];
+// const {
+//   getCandidates,
+//   getElectionNews,
+//   getMoreNews,
+//   getElectionStats,
+//   createElection,
+//   getCurrentElectionCandidates,
+//   getElectionCandidatesById,
+//   getAvailableElections,
+// } = require('../controllers/electionController');
 
-// // Create election
-// router.post('/', authMiddleware, async (req, res) => {
-//   try {
-//     const { title, startDate, endDate } = req.body;
-//     if (!title || !startDate || !endDate) {
-//       return res.status(400).json({ error: 'All fields are required' });
-//     }
-//     const election = new Election({ title, startDate, endDate });
-//     await election.save();
-//     res.status(201).json(election);
-//   } catch (err) {
-//     console.error('Create election error:', err.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
+// // Create election (admin)
+// router.post('/create', authMiddleware, upload.any(), createElection);
 
-// // Get all elections
-// router.get('/', async (req, res) => {
-//   try {
-//     const elections = await Election.find();
-//     res.json(elections);
-//   } catch (err) {
-//     console.error('Get elections error:', err.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
+// // Legacy candidates (if used elsewhere)
+// router.get('/candidates', getCandidates);
 
-// // Add candidate
-// router.post('/candidates', authMiddleware, async (req, res) => {
-//   try {
-//     const { name, department, slogan, platform, position, electionId } = req.body;
-//     if (!name || !department || !position || !electionId) {
-//       return res.status(400).json({ error: 'All required fields are required' });
-//     }
-//     const candidate = new Candidate({ name, department, slogan, platform, position, electionId });
-//     await candidate.save();
-//     res.status(201).json(candidate);
-//   } catch (err) {
-//     console.error('Add candidate error:', err.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
+// // ✅ NEW — must exist for your VotingPage list
+// router.get('/available', authMiddleware, getAvailableElections);
 
-// // Get candidates
-// router.get('/candidates', async (req, res) => {
-//   try {
-//     const candidates = await Candidate.find().populate('electionId');
-//     res.json(candidates);
-//   } catch (err) {
-//     console.error('Get candidates error:', err.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
+// // ✅ Used by VotingPage when you open a specific ballot
+// router.get('/current-candidates', authMiddleware, getCurrentElectionCandidates);
+// router.get('/:id/candidates', authMiddleware, getElectionCandidatesById);
 
-// // Get election news
-// router.get('/news', async (req, res) => {
-//   try {
-//     res.json(mockNews);
-//   } catch (err) {
-//     console.error('Get news error:', err.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-// // Get more news
-// router.get('/news/more', async (req, res) => {
-//   try {
-//     res.json([]);
-//   } catch (err) {
-//     console.error('Get more news error:', err.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-// // Get election stats
-// router.get('/stats', async (req, res) => {
-//   try {
-//     const totalVoters = await User.countDocuments();
-//     const votesCast = await Vote.countDocuments();
-//     const candidateCount = await Candidate.countDocuments();
-//     const election = await Election.findOne();
-//     res.json({
-//       totalVoters,
-//       votesCast,
-//       candidateCount,
-//       turnout: totalVoters ? (votesCast / totalVoters) * 100 : 0,
-//       positionCount: candidateCount,
-//       status: election ? 'Active' : 'Inactive',
-//       endDate: election ? election.endDate.toISOString().split('T')[0] : 'N/A',
-//       countdown: '1 day remaining',
-//       timeRemainingPercent: 50,
-//       timeRemainingText: '1 day left',
-//       electionId: election ? election._id : null,
-//     });
-//   } catch (err) {
-//     console.error('Get stats error:', err.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
+// // News & stats
+// router.get('/news', getElectionNews);
+// router.get('/news/more', getMoreNews);
+// router.get('/stats', getElectionStats);
 
 // module.exports = router;
 
+// routes/election.js
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const upload = require('../middleware/upload');
-const { getCandidates, getElectionNews, getMoreNews, getElectionStats, createElection } = require('../controllers/electionController');
-const Candidate = require('../models/Candidate');
-const Election = require('../models/Election');
-const Vote = require('../models/Vote');
-const User = require('../models/User');
 
-// Mock news data
-const mockNews = [
-  { type: 'Update', typeColor: 'bg-blue-500', date: '2025-06-04', title: 'Election Started', content: 'The election has officially begun.' },
-  { type: 'Announcement', typeColor: 'bg-green-500', date: '2025-06-03', title: 'Candidate List', content: 'Candidates have been announced.' },
-];
+const {
+  getCandidates,
+  getElectionNews,
+  getMoreNews,
+  getElectionStats,
+  createElection,
+  getCurrentElectionCandidates,
+  getElectionCandidatesById,
+  getAvailableElections,
+} = require('../controllers/electionController');
 
-// Create election
+// Create election (admin)
 router.post('/create', authMiddleware, upload.any(), createElection);
 
-// Get all elections
-router.get('/', async (req, res) => {
-  try {
-    const elections = await Election.find();
-    res.json(elections);
-  } catch (err) {
-    console.error('Get elections error:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Add candidate
-router.post('/candidates', authMiddleware, async (req, res) => {
-  try {
-    const { name, department, slogan, platform, position, electionId } = req.body;
-    if (!name || !department || !position || !electionId) {
-      return res.status(400).json({ error: 'All required fields are required' });
-    }
-    const candidate = new Candidate({ name, department, slogan, platform, position, electionId });
-    await candidate.save();
-    res.status(201).json(candidate);
-  } catch (err) {
-    console.error('Add candidate error:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get candidates
+// Legacy list used elsewhere
 router.get('/candidates', getCandidates);
 
-// Get election news
+// NEW for VotingPage
+router.get('/available', authMiddleware, getAvailableElections);
+router.get('/current-candidates', authMiddleware, getCurrentElectionCandidates);
+router.get('/:id/candidates', authMiddleware, getElectionCandidatesById);
+
+// News & stats
 router.get('/news', getElectionNews);
-
-// Get more news
 router.get('/news/more', getMoreNews);
-
-// Get election stats
 router.get('/stats', getElectionStats);
 
-router.post('/create', authMiddleware, upload.any(), createElection);
-
 module.exports = router;
+
