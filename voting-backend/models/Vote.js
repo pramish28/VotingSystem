@@ -1,22 +1,18 @@
-// const mongoose = require('mongoose');
-
-// const voteSchema = new mongoose.Schema({
-//   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-//   candidateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', required: true },
-//   electionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Election', required: true },
-//   createdAt: { type: Date, default: Date.now },
-// });
-
-// module.exports = mongoose.model('Vote', voteSchema);
 const mongoose = require('mongoose');
 
 const VoteSchema = new mongoose.Schema({
-  voterId: { type: String, required: true },
-  candidateId: { type: String, required: true },
-  position: { type: String, required: true },
+  voterId: { type: String, required: true }, // e.g. "FSU-2081-001"
+  candidateId: { type: String, required: true }, // subdoc _id as string
+  position: { type: String, enum: ['president','vicePresident','secretary','treasurer','members'], required: true },
   electionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Election', required: true },
   status: { type: String, enum: ['pending', 'confirmed'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
 });
+
+// Allow multiple different members, but no duplicate same candidate per voter
+VoteSchema.index({ electionId: 1, voterId: 1, position: 1, candidateId: 1 }, { unique: true });
+
+// Speed up “how many votes has this voter cast for this position?”
+VoteSchema.index({ electionId: 1, voterId: 1, position: 1 });
 
 module.exports = mongoose.model('Vote', VoteSchema);
