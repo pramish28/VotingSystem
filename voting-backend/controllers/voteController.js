@@ -1,6 +1,7 @@
 // const mongoose = require('mongoose');
 // const Vote = require('../models/Vote');
 // const Election = require('../models/Election');
+// const User = require('../models/User');
 
 // const POSITION_KEYS = new Set(['president', 'vicePresident', 'secretary', 'treasurer', 'members']);
 
@@ -33,7 +34,7 @@
 //   return null;
 // }
 
-// /** POST /api/vote  -> create a PENDING vote (idempotent per position/candidate) */
+// /** POST /api/vote -> create a PENDING vote (idempotent per position/candidate) */
 // const submitVote = async (req, res) => {
 //   try {
 //     const { electionId, voterId, position, candidateId } = req.body;
@@ -51,13 +52,13 @@
 //     const candidate = findCandidateInElection(election, position, candidateId);
 //     if (!candidate) return res.status(404).json({ message: 'Candidate not found for this election/position.' });
 
-//     // Idempotent: if the exact vote exists (pending/confirmed), return OK
+//     // Idempotent: same vote (pending/confirmed) -> OK
 //     const existingExact = await Vote.findOne({ electionId, voterId, position, candidateId });
 //     if (existingExact) {
 //       return res.status(200).json({ message: 'Vote already recorded (pending or confirmed).', voteId: existingExact._id });
 //     }
 
-//     // Selection limits per position
+//     // One per position (except up to 12 members)
 //     const existingForPosition = await Vote.countDocuments({ electionId, voterId, position });
 //     if (position === 'members') {
 //       if (existingForPosition >= 12) return res.status(400).json({ message: 'You can select up to 12 members only.' });
@@ -77,9 +78,9 @@
 //     return res.json({ message: 'Vote recorded (pending).', voteId: vote._id });
 //   } catch (err) {
 //     console.error('Submit vote error:', err);
-//     // If an old unique index on {userId, electionId} still exists and triggers 11000, treat as success
 //     if (err && err.code === 11000) {
-//       return res.status(200).json({ message: 'Vote already recorded (duplicate index).', duplicate: true });
+//       // legacy unique index hit -> treat as idempotent success
+//       return res.status(200).json({ message: 'Vote already recorded (duplicate index).' });
 //     }
 //     return res.status(500).json({ message: 'Server error' });
 //   }
@@ -132,7 +133,6 @@
 //   try {
 //     let { electionId } = req.query;
 
-//     // If not provided, use active by date else latest
 //     if (!electionId) {
 //       const now = new Date();
 //       let el = await Election.findOne({ startDate: { $lte: now }, endDate: { $gte: now } }).sort({ startDate: -1 }).lean();
@@ -193,11 +193,33 @@
 //   }
 // };
 
+// /** OPTIONAL test helper: DELETE my votes for an election (auth) */
+// const deleteMyVotesForElection = async (req, res) => {
+//   try {
+//     const { electionId } = req.params;
+//     if (!electionId) return res.status(400).json({ message: 'electionId is required.' });
+
+//     const me = await User.findById(req.user.id).select('voterId').lean();
+//     if (!me?.voterId) return res.status(401).json({ message: 'Unauthorized' });
+
+//     const r = await Vote.deleteMany({
+//       electionId: new mongoose.Types.ObjectId(electionId),
+//       voterId: me.voterId,
+//     });
+
+//     return res.json({ deleted: r.deletedCount || 0 });
+//   } catch (err) {
+//     console.error('deleteMyVotesForElection error:', err);
+//     return res.status(500).json({ message: 'Server error' });
+//   }
+// };
+
 // module.exports = {
 //   submitVote,
 //   confirmVote,
 //   confirmAllVotes,
 //   getResults,
+//   deleteMyVotesForElection, // optional
 // };
 
 // controllers/voteController.js
@@ -256,13 +278,13 @@ const submitVote = async (req, res) => {
     if (!candidate) return res.status(404).json({ message: 'Candidate not found for this election/position.' });
 
     // Idempotent: same vote (pending/confirmed) -> OK
-    const existingExact = await Vote.findOne({ electionId, voterId, position, candidateId });
+    const existingExact = await Vote.findOne({ electionId: new mongoose.Types.ObjectId(electionId), voterId, position, candidateId });
     if (existingExact) {
       return res.status(200).json({ message: 'Vote already recorded (pending or confirmed).', voteId: existingExact._id });
     }
 
     // One per position (except up to 12 members)
-    const existingForPosition = await Vote.countDocuments({ electionId, voterId, position });
+    const existingForPosition = await Vote.countDocuments({ electionId: new mongoose.Types.ObjectId(electionId), voterId, position });
     if (position === 'members') {
       if (existingForPosition >= 12) return res.status(400).json({ message: 'You can select up to 12 members only.' });
     } else {
@@ -297,7 +319,12 @@ const confirmVote = async (req, res) => {
       return res.status(400).json({ message: 'electionId, voterId, position, candidateId are required.' });
     }
 
-    const vote = await Vote.findOne({ electionId, voterId, position, candidateId });
+    const vote = await Vote.findOne({
+      electionId: new mongoose.Types.ObjectId(electionId),
+      voterId,
+      position,
+      candidateId,
+    });
     if (!vote) return res.status(404).json({ message: 'Vote not found.' });
 
     if (vote.status !== 'confirmed') {
@@ -320,7 +347,7 @@ const confirmAllVotes = async (req, res) => {
     }
 
     const result = await Vote.updateMany(
-      { electionId, voterId, status: 'pending' },
+      { electionId: new mongoose.Types.ObjectId(electionId), voterId, status: 'pending' },
       { $set: { status: 'confirmed' } }
     );
 
@@ -422,6 +449,5 @@ module.exports = {
   confirmVote,
   confirmAllVotes,
   getResults,
-  deleteMyVotesForElection, // optional
+  deleteMyVotesForElection, // optional helper
 };
-

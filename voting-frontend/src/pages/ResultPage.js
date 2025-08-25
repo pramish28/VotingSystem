@@ -1,84 +1,220 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  Title,
+} from 'chart.js';
 import api from '../api';
 import './ResultPage.css';
 
-export default function ResultPage() {
-  const [params] = useSearchParams();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [results, setResults] = useState([]); // [{ candidateId, position, name, party, votes, percentage }]
-  const [electionId, setElectionId] = useState('');
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const eid = params.get('electionId');
-        const url = eid ? `/api/vote/results?electionId=${eid}` : '/api/vote/results';
-        const res = await api.get(url);
-        setElectionId(res.data?.electionId || '');
-        setResults(res.data?.results || []);
-      } catch (e) {
-        console.error('Load results error:', e);
-        setError(e.response?.data?.message || e.message || 'Failed to load results');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [params]);
+const POSITIONS = ['president', 'vicePresident', 'secretary', 'treasurer', 'members'];
+const POSITION_TITLES = {
+  president: 'President',
+  vicePresident: 'Vice President',
+  secretary: 'Secretary',
+  treasurer: 'Treasurer',
+  members: 'Members',
+};
 
-  const grouped = useMemo(() => {
-    const g = { president: [], vicePresident: [], secretary: [], treasurer: [], members: [] };
-    for (const r of results) {
-      if (g[r.position]) g[r.position].push(r);
-    }
-    Object.keys(g).forEach(k => g[k].sort((a,b) => b.votes - a.votes)); // winner first
-    return g;
-  }, [results]);
+function groupByPosition(results) {
+  const g = {};
+  for (const p of POSITIONS) g[p] = [];
+  for (const r of results || []) {
+    if (!g[r.position]) g[r.position] = [];
+    g[r.position].push(r);
+  }
+  for (const p of Object.keys(g)) g[p].sort((a, b) => b.votes - a.votes);
+  return g;
+}
 
-  if (loading) return <div className="result-container"><p>Loading results…</p></div>;
-  if (error) return <div className="result-container"><p className="error">{error}</p></div>;
-
-  const Section = ({ title, data }) => {
-    const total = data.reduce((s, r) => s + r.votes, 0);
-    const topVotes = data[0]?.votes || 0;
-    return (
-      <div className="result-section">
-        <h3>{title}</h3>
-        {data.length === 0 && <p>No votes yet.</p>}
-        {data.map((r, idx) => {
-          const widthPct = total ? r.votes / total * 100 : 0;
-          const isWinner = idx === 0 && r.votes === topVotes;
-          return (
-            <div key={`${r.position}-${r.candidateId}`} className={`bar-row ${isWinner ? 'winner' : ''}`}>
-              <div className="bar-label">
-                <span className="candidate-name">{r.name}</span>
-                {r.party ? <span className="candidate-party"> ({r.party})</span> : null}
-              </div>
-              <div className="bar-track">
-                <div className="bar-fill" style={{ width: `${widthPct}%` }} />
-              </div>
-              <div className="bar-stats">
-                <span className="votes">{r.votes} vote{r.votes === 1 ? '' : 's'}</span>
-                <span className="percent">{r.percentage.toFixed(2)}%</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
+function ElectionBox({ title, startDate, endDate, results }) {
+  const grouped = useMemo(() => groupByPosition(results), [results]);
 
   return (
-    <div className="result-container">
-      <h2>Election Results</h2>
-      {electionId && <p className="muted">Election ID: {electionId}</p>}
+    <div className="election-card">
+      <div className="election-header">
+        <div className="election-title">{title || 'Election'}</div>
+        <div className="election-dates">
+          {startDate ? new Date(startDate).toLocaleDateString() : '—'} &nbsp;–&nbsp;
+          {endDate ? new Date(endDate).toLocaleDateString() : '—'}
+        </div>
+      </div>
 
-      <Section title="President" data={grouped.president} />
-      <Section title="Vice President" data={grouped.vicePresident} />
-      <Section title="Secretary" data={grouped.secretary} />
-      <Section title="Treasurer" data={grouped.treasurer} />
-      <Section title="Members" data={grouped.members} />
+      {POSITIONS.map((pos) => {
+        const rows = grouped[pos] || [];
+        if (!rows.length) return null;
+
+        const labels = rows.map((r) => `${r.name}${r.party ? ` (${r.party})` : ''}`);
+        const data = rows.map((r) => r.votes);
+        const perc = rows.map((r) => r.percentage);
+
+        const chartData = {
+          labels,
+          datasets: [
+            {
+              label: 'Votes',
+              data,
+              // backgroundColor omitted -> Chart.js default color palette
+              // You can add colors if you want, but keeping default keeps it simple
+            },
+          ],
+        };
+
+        const options = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const v = ctx.raw ?? 0;
+                  const i = ctx.dataIndex;
+                  const p = perc[i] ?? 0;
+                  return `Votes: ${v} (${p}%)`;
+                },
+              },
+            },
+            title: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+            },
+          },
+        };
+
+        return (
+          <div className="position-card" key={pos}>
+            <div className="position-title">{POSITION_TITLES[pos]}</div>
+            <div className="chart-wrap">
+              <Bar data={chartData} options={options} />
+            </div>
+
+            {/* Optional little table under the chart */}
+            <table className="mini-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 28 }}>#</th>
+                  <th>Candidate</th>
+                  <th style={{ textAlign: 'right', width: 80 }}>Votes</th>
+                  <th style={{ textAlign: 'right', width: 70 }}>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, idx) => (
+                  <tr key={r.candidateId}>
+                    <td>{idx + 1}</td>
+                    <td>{r.name}{r.party ? ` (${r.party})` : ''}</td>
+                    <td style={{ textAlign: 'right' }}>{r.votes}</td>
+                    <td style={{ textAlign: 'right' }}>{r.percentage}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function ResultPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // If /api/election exists we’ll render one box per election; otherwise we’ll render the active/latest one.
+  const [electionBoxes, setElectionBoxes] = useState([]); // [{electionId, title, startDate, endDate, results: []}]
+
+  const fetchOneElectionResults = useCallback(async (election) => {
+    const url = election?._id
+      ? `/api/vote/results?electionId=${election._id}`
+      : '/api/vote/results';
+
+    const data = await api.get(url).then((r) => r.data || { electionId: '', results: [] });
+
+    return {
+      electionId: data.electionId || election?._id || '',
+      title: election?.electionTitle || '',
+      startDate: election?.startDate || '',
+      endDate: election?.endDate || '',
+      results: Array.isArray(data.results) ? data.results : [],
+    };
+  }, []);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Try to get all elections (this route should exist; if not, we fallback gracefully)
+      let elections = [];
+      try {
+        const list = await api.get('/api/election');
+        elections = Array.isArray(list.data) ? list.data : [];
+      } catch {
+        elections = [];
+      }
+
+      if (elections.length) {
+        // Show ALL elections as boxes, newest first
+        elections.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+        const boxes = await Promise.all(elections.map((el) => fetchOneElectionResults(el)));
+        setElectionBoxes(boxes);
+      } else {
+        // Fallback: just show the active/latest election (backend decides)
+        const box = await fetchOneElectionResults(null);
+        setElectionBoxes([box]);
+      }
+    } catch (e) {
+      console.error('Result load error:', e);
+      setError(e.response?.data?.message || e.message || 'Failed to load results');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchOneElectionResults]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  return (
+    <div className="results-page">
+      <div className="results-header">
+        <h2>Election Results</h2>
+        <button className="refresh-btn" onClick={loadData}>Refresh</button>
+      </div>
+
+      {loading && <p>Loading results…</p>}
+      {!loading && error && <p className="error">{error}</p>}
+
+      {!loading && !error && electionBoxes.length === 0 && (
+        <div className="empty-box">No elections found.</div>
+      )}
+
+      {!loading && !error && electionBoxes.length > 0 && (
+        <div className="election-grid">
+          {electionBoxes.map((box) => (
+            <ElectionBox
+              key={box.electionId || Math.random()}
+              title={box.title}
+              startDate={box.startDate}
+              endDate={box.endDate}
+              results={box.results}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
