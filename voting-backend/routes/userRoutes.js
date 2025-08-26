@@ -109,10 +109,6 @@ router.delete('/reject-student/:id', async (req, res) => {
   }
 });
 
-
-
-
-
 //testing route
 
 router.get('/test', async (req, res) => {
