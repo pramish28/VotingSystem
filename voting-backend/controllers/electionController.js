@@ -67,7 +67,7 @@
 //   };
 // }
 
-// // ---------- existing handlers you already had (keep them) ----------
+// // ---------- existing handlers (kept) ----------
 // const getCandidates = async (req, res) => {
 //   try {
 //     const candidates = await Candidate.find().select("_id name department slogan platform position color");
@@ -227,9 +227,7 @@
 //   }
 // };
 
-// // ---------- NEW endpoints your Voting page relies on ----------
-
-// // GET /api/election/current-candidates (active/latest election) — blocks if already voted
+// // ---------- NEW endpoints used by VotingPage ----------
 // const getCurrentElectionCandidates = async (req, res) => {
 //   try {
 //     const voterId = await getCurrentVoterId(req);
@@ -242,11 +240,7 @@
 
 //     const alreadyVoted = await Vote.exists({ electionId: election._id, voterId, status: 'confirmed' });
 //     if (alreadyVoted) {
-//       return res.status(403).json({
-//         alreadyVoted: true,
-//         electionId: String(election._id),
-//         title: election.electionTitle,
-//       });
+//       return res.status(403).json({ alreadyVoted: true, electionId: String(election._id), title: election.electionTitle });
 //     }
 
 //     return res.json(shapeElectionCandidates(election));
@@ -256,7 +250,6 @@
 //   }
 // };
 
-// // GET /api/election/:id/candidates — blocks if already voted
 // const getElectionCandidatesById = async (req, res) => {
 //   try {
 //     const voterId = await getCurrentVoterId(req);
@@ -267,11 +260,7 @@
 
 //     const alreadyVoted = await Vote.exists({ electionId: election._id, voterId, status: 'confirmed' });
 //     if (alreadyVoted) {
-//       return res.status(403).json({
-//         alreadyVoted: true,
-//         electionId: String(election._id),
-//         title: election.electionTitle,
-//       });
+//       return res.status(403).json({ alreadyVoted: true, electionId: String(election._id), title: election.electionTitle });
 //     }
 
 //     return res.json(shapeElectionCandidates(election));
@@ -281,7 +270,6 @@
 //   }
 // };
 
-// // GET /api/election/available?scope=active|all — list elections NOT yet voted by current user
 // const getAvailableElections = async (req, res) => {
 //   try {
 //     const voterId = await getCurrentVoterId(req);
@@ -325,7 +313,6 @@
 //   getMoreNews,
 //   getElectionStats,
 //   createElection,
-//   // new exports:
 //   getCurrentElectionCandidates,
 //   getElectionCandidatesById,
 //   getAvailableElections,
@@ -349,6 +336,12 @@ async function getCurrentVoterId(req) {
   }
 }
 
+const POS_KEYS = ['president', 'vicePresident', 'secretary', 'treasurer', 'members'];
+
+function escapeRegExp(s = '') {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function shapeElectionCandidates(election) {
   const positions = { president: [], vicePresident: [], secretary: [], treasurer: [], members: [] };
 
@@ -361,17 +354,18 @@ function shapeElectionCandidates(election) {
       if (slot && (slot.name || slot.photo) && slot._id) {
         positions[k].push({
           candidateId: String(slot._id),
+          candidateUserId: slot.candidateUserId ? String(slot.candidateUserId) : null, // 👈 add for probability model later
           name: slot.name || '',
           party,
           photo: slot.photo ? `http://localhost:5000${slot.photo}` : '',
         });
       }
     }
-
     for (const m of c.members || []) {
       if ((m?.name || m?.photo) && m?._id) {
         positions.members.push({
           candidateId: String(m._id),
+          candidateUserId: m.candidateUserId ? String(m.candidateUserId) : null,
           name: m.name || '',
           party,
           photo: m.photo ? `http://localhost:5000${m.photo}` : '',
@@ -386,6 +380,7 @@ function shapeElectionCandidates(election) {
       if (positions[k]) {
         positions[k].push({
           candidateId: String(ind._id),
+          candidateUserId: ind.candidateUserId ? String(ind.candidateUserId) : null,
           name: ind.name || '',
           party: 'Independent',
           photo: ind.photo ? `http://localhost:5000${ind.photo}` : '',
@@ -405,7 +400,7 @@ function shapeElectionCandidates(election) {
 const getCandidates = async (req, res) => {
   try {
     const candidates = await Candidate.find().select("_id name department slogan platform position color");
-    res.json(candidates);
+  res.json(candidates);
   } catch (err) {
     console.error('Get candidates error:', err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -486,6 +481,30 @@ const getElectionStats = async (req, res) => {
   }
 };
 
+// 👇 NEW: utility to find a verified user by (case-insensitive) exact name
+async function findVerifiedByName(name) {
+  if (!name || !name.trim()) return null;
+  const rx = new RegExp(`^${escapeRegExp(name.trim())}$`, 'i');
+  return User.findOne({ name: rx, isVerified: true, role: { $ne: 'admin' } }).select('_id name voterId').lean();
+}
+
+// 👇 small helper to add/validate a candidate record and enforce the "one person, one position" rule
+async function resolveCandidateUserId(name, usedUserIds, errors, labelForError) {
+  if (!name?.trim()) return null; // empty slot, ignore
+  const u = await findVerifiedByName(name);
+  if (!u) {
+    errors.push(`"${labelForError}": "${name}" is not a verified student (exact name match required).`);
+    return null;
+  }
+  const key = String(u._id);
+  if (usedUserIds.has(key)) {
+    errors.push(`"${labelForError}": ${u.name} is already nominated for another position in this election.`);
+  } else {
+    usedUserIds.add(key);
+  }
+  return u._id;
+}
+
 const createElection = async (req, res) => {
   console.log('Request body:', req.body);
   console.log('Uploaded files:', req.files);
@@ -509,40 +528,85 @@ const createElection = async (req, res) => {
       return res.status(400).json({ message: 'Invalid JSON format in request body', error: err.message });
     }
 
-    const updatedPartySections = parsedPartySections.map((section, index) => {
-      const candidates = { ...section.candidates };
-      Object.keys(candidates).forEach((key) => {
-        if (key !== 'members') {
-          const fileKey = `partySections[${index}][candidates][${key}][photo]`;
-          const file = files.find(f => f.fieldname === fileKey);
-          candidates[key] = {
-            name: candidates[key].name || "",
-            photo: file ? `/Uploads/${file.filename}` : "",
-          };
-        } else {
-          candidates.members = candidates.members.map((member, memberIndex) => {
-            const memberFileKey = `partySections[${index}][candidates][members][${memberIndex}][photo]`;
-            const file = files.find(f => f.fieldname === memberFileKey);
-            return {
-              name: member.name || "",
-              photo: file ? `/Uploads/${file.filename}` : "",
-            };
-          });
-        }
-      });
-      return { ...section, candidates, partyName: section.partyName || "" };
-    });
+    const errors = [];
+    const usedUserIds = new Set(); // enforce one person = one position (including members & independents)
 
-    const updatedIndependents = parsedIndependents.map((cand, index) => {
+    // ——— Party sections (attach candidateUserId + photos)
+    const updatedPartySections = [];
+    for (let index = 0; index < parsedPartySections.length; index++) {
+      const section = parsedPartySections[index] || {};
+      const partyName = section.partyName || '';
+      const candidates = { ...(section.candidates || {}) };
+
+      // non-member posts
+      for (const k of ['president', 'vicePresident', 'secretary', 'treasurer']) {
+        const entry = candidates[k] || { name: '' };
+        const fileKey = `partySections[${index}][candidates][${k}][photo]`;
+        const file = files.find(f => f.fieldname === fileKey);
+        const label = `${partyName || 'Party'} - ${k}`;
+
+        const candidateUserId = await resolveCandidateUserId(entry.name, usedUserIds, errors, label);
+
+        candidates[k] = {
+          name: entry.name || '',
+          photo: file ? `/Uploads/${file.filename}` : '',
+          candidateUserId: candidateUserId || null,
+        };
+      }
+
+      // members (array up to 12)
+      const members = Array.isArray(candidates.members) ? candidates.members : [];
+      const newMembers = [];
+      for (let mIdx = 0; mIdx < members.length; mIdx++) {
+        const m = members[mIdx] || { name: '' };
+        const memberFileKey = `partySections[${index}][candidates][members][${mIdx}][photo]`;
+        const file = files.find(f => f.fieldname === memberFileKey);
+        const label = `${partyName || 'Party'} - member #${mIdx + 1}`;
+        const candidateUserId = await resolveCandidateUserId(m.name, usedUserIds, errors, label);
+
+        newMembers.push({
+          name: m.name || '',
+          photo: file ? `/Uploads/${file.filename}` : '',
+          candidateUserId: candidateUserId || null,
+        });
+      }
+
+      updatedPartySections.push({
+        partyName,
+        candidates: { ...candidates, members: newMembers },
+      });
+    }
+
+    // ——— Independents
+    const updatedIndependents = [];
+    for (let index = 0; index < parsedIndependents.length; index++) {
+      const cand = parsedIndependents[index] || {};
+      const post = cand.post || '';
+      const name = cand.name || '';
       const fileKey = `independents[${index}][photo]`;
       const file = files.find(f => f.fieldname === fileKey);
-      return {
-        post: cand.post || "",
-        name: cand.name || "",
-        photo: file ? `/Uploads/${file.filename}` : "",
-      };
-    });
 
+      const label = `Independent - ${post || 'unknown post'}`;
+      const candidateUserId = await resolveCandidateUserId(name, usedUserIds, errors, label);
+
+      updatedIndependents.push({
+        post,
+        name,
+        photo: file ? `/Uploads/${file.filename}` : '',
+        candidateUserId: candidateUserId || null,
+      });
+    }
+
+    // If anything failed, return a clean error list
+    if (errors.length) {
+      return res.status(400).json({
+        message: 'Candidate validation failed',
+        errors,
+        hint: 'Only verified students can be nominated and a single student cannot be placed in multiple positions.',
+      });
+    }
+
+    // Save election
     const election = new Election({
       electionTitle,
       startDate: new Date(startDate),
@@ -641,6 +705,40 @@ const getAvailableElections = async (req, res) => {
   }
 };
 
+// 👇 NEW: list elections (used by ResultPage)
+const listAllElections = async (_req, res) => {
+  try {
+    const items = await Election.find({})
+      .select('_id electionTitle startDate endDate')
+      .sort({ startDate: -1 })
+      .lean();
+    res.json(items);
+  } catch (err) {
+    console.error('listAllElections error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// 👇 OPTIONAL: list verified students (for a future selector in ElectionForm)
+const listVerifiedStudents = async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    const rx = q ? new RegExp(escapeRegExp(q), 'i') : null;
+    const users = await User.find({
+      isVerified: true,
+      role: { $ne: 'admin' },
+      ...(rx ? { name: rx } : {}),
+    })
+      .select('_id name voterId faculty program photo')
+      .limit(50)
+      .lean();
+    res.json(users);
+  } catch (err) {
+    console.error('listVerifiedStudents error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getCandidates,
   getElectionNews,
@@ -650,5 +748,6 @@ module.exports = {
   getCurrentElectionCandidates,
   getElectionCandidatesById,
   getAvailableElections,
+  listAllElections,        // 👈 added
+  listVerifiedStudents,    // 👈 optional helper
 };
-
