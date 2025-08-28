@@ -183,3 +183,23 @@
   .election-grid{ grid-template-columns:1fr; }
   .chart-wrap{ height:220px; }
 }
+
+/* Probability chip */
+.prob-chip{
+  display:inline-block;
+  min-width: 64px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  text-align: right;
+  color: #0b4d2b;
+  background: #e6f7ee;
+  border: 1px solid #b7ebcf;
+}
+.prob-chip.muted{
+  color:#6b7280;
+  background:#f3f4f6;
+  border-color:#e5e7eb;
+}
+

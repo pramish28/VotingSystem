@@ -17,64 +17,55 @@
 //   { label: "कोषाध्यक्ष", key: "treasurer" }
 // ];
 
-// // ----- small helpers -----
-// const asUserLabel = (u) => {
-//   const parts = [u.name];
-//   if (u.faculty) parts.push(u.faculty);
-//   if (u.program) parts.push(u.program);
-//   if (u.voterId) parts.push(`ID:${u.voterId}`);
-//   return parts.join(' • ');
-// };
-
 // export default function ElectionForm() {
 //   const [electionTitle, setElectionTitle] = useState("");
 //   const [startDate, setStartDate] = useState("");
 //   const [endDate, setEndDate] = useState("");
 
-//   // Party, independents, samanupatik (same keys as before) BUT we store a local-only "userId"
+//   // verified students for dropdown
+//   const [verifiedUsers, setVerifiedUsers] = useState([]);
+//   const [loadingUsers, setLoadingUsers] = useState(true);
+//   const [usersError, setUsersError] = useState("");
+
+//   // party sections & independents (same structure you had, but we add selectedUserId fields)
 //   const [partySections, setPartySections] = useState([]);
 //   const [independents, setIndependents] = useState([]);
 //   const [samanupatikParties, setSamanupatikParties] = useState([]);
 //   const [isSubmitting, setIsSubmitting] = useState(false);
 
-//   // Verified users
-//   const [verified, setVerified] = useState([]);
-//   const [loadingVerified, setLoadingVerified] = useState(true);
-//   const [loadErr, setLoadErr] = useState('');
-
-//   // Derived sets for preventing duplicates
 //   const chosenParties = partySections.map(p => p.partyName).filter(Boolean);
 //   const chosenSamanupatik = samanupatikParties.filter(Boolean);
 
+//   // ---------- load verified students (NO voterId in labels) ----------
 //   useEffect(() => {
 //     let alive = true;
 //     (async () => {
 //       try {
-//         setLoadingVerified(true);
-//         setLoadErr('');
+//         setLoadingUsers(true);
+//         setUsersError("");
 //         const res = await api.get('/api/users/verified');
-//         if (!alive) return;
 //         const list = Array.isArray(res.data) ? res.data : [];
-//         // normalize fields we need
+//         // map & normalize; IMPORTANT: include symbolNumber, exclude voterId in UI
 //         const clean = list.map(u => ({
 //           _id: String(u._id),
 //           name: u.name,
 //           faculty: u.faculty || '',
 //           program: u.program || '',
-//           voterId: u.voterId || '',
+//           symbolNumber: u.symbolNumber || '',
+//           // keep whatever photo path you store (optional preview only)
 //           photo: u.photo || '',
 //         }));
-//         setVerified(clean);
+//         if (alive) setVerifiedUsers(clean);
 //       } catch (e) {
-//         console.error('Failed to load verified users', e);
-//         setLoadErr('भेरिफाइड विद्यार्थी सूची ल्याउन सकेन। पुन: प्रयास गर्नुहोस्।');
+//         if (alive) setUsersError(e.response?.data?.error || e.message || 'Failed to load verified users');
 //       } finally {
-//         setLoadingVerified(false);
+//         if (alive) setLoadingUsers(false);
 //       }
 //     })();
 //     return () => { alive = false; };
 //   }, []);
 
+//   // ---------- helpers ----------
 //   function validateFile(file) {
 //     const filetypes = /jpeg|jpg|png/;
 //     const maxSize = 5 * 1024 * 1024; // 5MB
@@ -93,12 +84,12 @@
 //     setPartySections(prev => [...prev, {
 //       partyName: "",
 //       candidates: {
-//         // add userId for local selection + keep name/photo like before
-//         president:     { userId: "", name: "", photo: null, preview: null },
-//         vicePresident: { userId: "", name: "", photo: null, preview: null },
-//         secretary:     { userId: "", name: "", photo: null, preview: null },
-//         treasurer:     { userId: "", name: "", photo: null, preview: null },
-//         members: Array(12).fill(null).map(() => ({ userId: "", name: "", photo: null, preview: null }))
+//         // add selectedUserId per slot; we still keep name/photo to match your backend payload
+//         president:    { name: "", photo: null, preview: null, selectedUserId: "" },
+//         vicePresident:{ name: "", photo: null, preview: null, selectedUserId: "" },
+//         secretary:    { name: "", photo: null, preview: null, selectedUserId: "" },
+//         treasurer:    { name: "", photo: null, preview: null, selectedUserId: "" },
+//         members: Array(12).fill(null).map(() => ({ name: "", photo: null, preview: null, selectedUserId: "" }))
 //       }
 //     }]);
 //   }
@@ -112,152 +103,82 @@
 //     });
 //   }
 
-//   // Build a set of all chosen userIds to enforce "one person → one position"
-//   const selectedUserIds = useMemo(() => {
-//     const set = new Set();
-//     for (const section of partySections) {
-//       const c = section.candidates;
-//       ['president','vicePresident','secretary','treasurer'].forEach(k => {
-//         if (c[k]?.userId) set.add(c[k].userId);
-//       });
-//       (c.members || []).forEach(m => { if (m?.userId) set.add(m.userId); });
-//     }
-//     for (const ind of independents) {
-//       if (ind?.userId) set.add(ind.userId);
-//     }
-//     return set;
-//   }, [partySections, independents]);
-
-//   // get options excluding already selected ids (but keep the currentId visible)
-//   function verifiedOptionsFor(currentId = "") {
-//     return verified.filter(u => !selectedUserIds.has(u._id) || u._id === currentId);
-//   }
-
-//   // When a verified student is picked for a slot
-//   function setCandidateFromUser(i, postKey, userId, memberIndex = null) {
-//     const user = verified.find(u => u._id === userId);
-//     if (!user) return;
-
-//     // Prevent duplicates (extra safety against race conditions)
-//     if (selectedUserIds.has(userId)) {
-//       // allow if it is already selected in this same slot
-//       const isSameSlot =
-//         (memberIndex === null &&
-//           partySections[i]?.candidates?.[postKey]?.userId === userId) ||
-//         (memberIndex !== null &&
-//           partySections[i]?.candidates?.members?.[memberIndex]?.userId === userId);
-//       if (!isSameSlot) {
-//         alert('एकै व्यक्ति कुनै अर्को पदमा पहिला नै चयन भइसकेको छ।');
-//         return;
-//       }
-//     }
-
-//     setPartySections(prev => {
-//       const copy = [...prev];
-//       const section = copy[i];
-//       if (!section) return prev;
-
-//       if (postKey === 'members' && memberIndex !== null) {
-//         const members = [...(section.candidates.members || [])];
-//         const slot = { ...(members[memberIndex] || {}) };
-//         slot.userId = user._id;
-//         slot.name = user.name;             // backend still receives "name"
-//         // default preview from user's existing photo if you want (not uploaded)
-//         slot.preview = user.photo ? `http://localhost:5000${user.photo}` : null;
-//         // keep "photo" for uploaded override
-//         members[memberIndex] = slot;
-//         section.candidates.members = members;
-//       } else {
-//         const slot = { ...(section.candidates[postKey] || {}) };
-//         slot.userId = user._id;
-//         slot.name = user.name;
-//         slot.preview = user.photo ? `http://localhost:5000${user.photo}` : null;
-//         section.candidates[postKey] = slot;
-//       }
-//       return copy;
-//     });
-//   }
-
-//   function clearCandidate(i, postKey, memberIndex = null) {
-//     setPartySections(prev => {
-//       const copy = [...prev];
-//       const section = copy[i];
-//       if (!section) return prev;
-
-//       if (postKey === 'members' && memberIndex !== null) {
-//         const members = [...(section.candidates.members || [])];
-//         members[memberIndex] = { userId: "", name: "", photo: null, preview: null };
-//         section.candidates.members = members;
-//       } else {
-//         section.candidates[postKey] = { userId: "", name: "", photo: null, preview: null };
-//       }
-//       return copy;
-//     });
-//   }
-
-//   function changeCandidatePhoto(i, postKey, file, memberIndex = null) {
+//   // set candidate FILE photo (unchanged from your version)
+//   function changeCandidatePhoto(sectionIndex, postKey, file, memberIndex = null) {
 //     if (file && !validateFile(file)) return;
 //     setPartySections(prev => {
 //       const copy = [...prev];
-//       const section = copy[i];
-//       if (!section) return prev;
-
-//       if (postKey === 'members' && memberIndex !== null) {
-//         const members = [...(section.candidates.members || [])];
-//         const slot = { ...(members[memberIndex] || {}) };
-//         slot.photo = file || null;
-//         slot.preview = file ? URL.createObjectURL(file) : slot.preview || null; // keep existing preview if clearing upload
-//         members[memberIndex] = slot;
-//         section.candidates.members = members;
+//       const section = copy[sectionIndex];
+//       if (postKey === "members" && memberIndex !== null) {
+//         const newMembers = [...section.candidates.members];
+//         newMembers[memberIndex].photo = file || null;
+//         newMembers[memberIndex].preview = file ? URL.createObjectURL(file) : null;
+//         section.candidates.members = newMembers;
 //       } else {
-//         const slot = { ...(section.candidates[postKey] || {}) };
-//         slot.photo = file || null;
-//         slot.preview = file ? URL.createObjectURL(file) : slot.preview || null;
-//         section.candidates[postKey] = slot;
+//         section.candidates[postKey].photo = file || null;
+//         section.candidates[postKey].preview = file ? URL.createObjectURL(file) : null;
 //       }
 //       return copy;
 //     });
 //   }
 
+//   // select verified student for a position (this sets candidate name automatically)
+//   function selectCandidateUser(sectionIndex, postKey, userId, memberIndex = null) {
+//     setPartySections(prev => {
+//       const copy = [...prev];
+//       const section = copy[sectionIndex];
+
+//       const u = verifiedUsers.find(x => x._id === userId) || null;
+//       const name = u ? u.name : "";
+
+//       if (postKey === "members" && memberIndex !== null) {
+//         const arr = [...section.candidates.members];
+//         arr[memberIndex] = {
+//           ...arr[memberIndex],
+//           selectedUserId: userId || "",
+//           name, // keep name in payload for your backend
+//         };
+//         section.candidates.members = arr;
+//       } else {
+//         section.candidates[postKey] = {
+//           ...section.candidates[postKey],
+//           selectedUserId: userId || "",
+//           name,
+//         };
+//       }
+//       return copy;
+//     });
+//   }
+
+//   // Independents (same idea as above)
 //   function addIndependent() {
-//     setIndependents(prev => [...prev, { post: "", userId: "", name: "", photo: null, preview: null }]);
+//     setIndependents(prev => [...prev, { post: "", selectedUserId: "", name: "", photo: null, preview: null }]);
 //   }
 
-//   function changeIndependent(index, field, value, isPhoto = false) {
-//     if (field === 'post' && isPhoto) return;
-//     if (isPhoto && value && !validateFile(value)) return;
-
+//   function changeIndependentField(index, field, value) {
 //     setIndependents(prev => {
 //       const copy = [...prev];
-//       if (!copy[index]) return prev;
-
-//       if (!isPhoto) {
-//         copy[index][field] = value;
-//       } else {
-//         copy[index].photo = value;
-//         copy[index].preview = value ? URL.createObjectURL(value) : copy[index].preview || null;
-//       }
+//       copy[index][field] = value;
 //       return copy;
 //     });
 //   }
 
-//   function setIndependentFromUser(index, userId) {
-//     const user = verified.find(u => u._id === userId);
-//     if (!user) return;
-
-//     if (selectedUserIds.has(userId) && independents[index]?.userId !== userId) {
-//       alert('एकै व्यक्ति कुनै अर्को पदमा पहिला नै चयन भइसकेको छ।');
-//       return;
-//     }
-
+//   function changeIndependentPhoto(index, file) {
+//     if (file && !validateFile(file)) return;
 //     setIndependents(prev => {
 //       const copy = [...prev];
-//       if (!copy[index]) return prev;
+//       copy[index].photo = file || null;
+//       copy[index].preview = file ? URL.createObjectURL(file) : null;
+//       return copy;
+//     });
+//   }
 
-//       copy[index].userId = user._id;
-//       copy[index].name = user.name;
-//       copy[index].preview = user.photo ? `http://localhost:5000${user.photo}` : null;
-
+//   function selectIndependentUser(index, userId) {
+//     setIndependents(prev => {
+//       const copy = [...prev];
+//       const u = verifiedUsers.find(x => x._id === userId) || null;
+//       copy[index].selectedUserId = userId || "";
+//       copy[index].name = u ? u.name : "";
 //       return copy;
 //     });
 //   }
@@ -275,34 +196,43 @@
 //     });
 //   }
 
-//   // Build a quick duplicate check before submit
-//   function hasDuplicateSelections() {
-//     const ids = [];
+//   // ---------- "one person, one position" ----------
+//   const chosenUserIds = useMemo(() => {
+//     const set = new Set();
+
 //     for (const section of partySections) {
-//       const c = section.candidates;
+//       const c = section.candidates || {};
 //       ['president','vicePresident','secretary','treasurer'].forEach(k => {
-//         if (c[k]?.userId) ids.push(c[k].userId);
+//         const sid = c[k]?.selectedUserId;
+//         if (sid) set.add(sid);
 //       });
-//       (c.members || []).forEach(m => { if (m?.userId) ids.push(m.userId); });
+//       for (const m of c.members || []) {
+//         if (m?.selectedUserId) set.add(m.selectedUserId);
+//       }
 //     }
 //     for (const ind of independents) {
-//       if (ind?.userId) ids.push(ind.userId);
+//       if (ind?.selectedUserId) set.add(ind.selectedUserId);
 //     }
-//     const set = new Set(ids);
-//     return set.size !== ids.length;
+//     return set;
+//   }, [partySections, independents]);
+
+//   // Build a label that NEVER shows voterId
+//   const asUserLabel = (u) =>
+//     [u.name, u.faculty, u.program, u.symbolNumber ? `Reg: ${u.symbolNumber}` : null]
+//       .filter(Boolean)
+//       .join(' • ');
+
+//   // Utility to get available options for a slot (allow keeping current selection)
+//   function optionsForSlot(currentSelectedId = "") {
+//     return verifiedUsers.filter(u => !chosenUserIds.has(u._id) || u._id === currentSelectedId);
 //   }
 
+//   // ---------- submit ----------
 //   async function handleSubmit(e) {
 //     e.preventDefault();
 //     if (isSubmitting) return;
-
 //     if (!electionTitle || !startDate || !endDate) {
 //       alert("निर्वाचन शीर्षक, सुरू मिति, र अन्त्य मिति अनिवार्य छन्!");
-//       return;
-//     }
-
-//     if (hasDuplicateSelections()) {
-//       alert('एकै विद्यार्थीलाई धेरै पदमा चयन गर्न पाइँदैन। कृपया चुनावहरू सच्याउनुहोस्।');
 //       return;
 //     }
 
@@ -313,14 +243,14 @@
 //       formData.append('startDate', startDate);
 //       formData.append('endDate', endDate);
 
-//       // Only names go to backend (same as before).
+//       // IMPORTANT: we keep your existing payload shape (names & files). Names come from selected verified users.
 //       const sanitizedPartySections = partySections.map(section => ({
 //         partyName: section.partyName || "",
 //         candidates: {
-//           president:     { name: section.candidates.president.name || "" },
-//           vicePresident: { name: section.candidates.vicePresident.name || "" },
-//           secretary:     { name: section.candidates.secretary.name || "" },
-//           treasurer:     { name: section.candidates.treasurer.name || "" },
+//           president:    { name: section.candidates.president.name || "" },
+//           vicePresident:{ name: section.candidates.vicePresident.name || "" },
+//           secretary:    { name: section.candidates.secretary.name || "" },
+//           treasurer:    { name: section.candidates.treasurer.name || "" },
 //           members: (section.candidates.members || []).map(m => ({ name: m.name || "" })),
 //         },
 //       }));
@@ -334,36 +264,32 @@
 
 //       formData.append('samanupatikParties', JSON.stringify(samanupatikParties.filter(Boolean)));
 
-//       // append all uploaded photos like before (overrides default previews)
-//       partySections.forEach((section, index) => {
+//       // FILES (same keys you already use)
+//       partySections.forEach((section, sIdx) => {
 //         Object.keys(section.candidates).forEach((key) => {
 //           if (key !== 'members') {
-//             const slot = section.candidates[key];
-//             if (slot.photo) {
-//               formData.append(`partySections[${index}][candidates][${key}][photo]`, slot.photo);
+//             const f = section.candidates[key].photo;
+//             if (f) {
+//               formData.append(`partySections[${sIdx}][candidates][${key}][photo]`, f);
 //             }
 //           } else {
-//             section.candidates.members.forEach((member, memberIndex) => {
+//             (section.candidates.members || []).forEach((member, mIdx) => {
 //               if (member.photo) {
-//                 formData.append(`partySections[${index}][candidates][members][${memberIndex}][photo]`, member.photo);
+//                 formData.append(`partySections[${sIdx}][candidates][members][${mIdx}][photo]`, member.photo);
 //               }
 //             });
 //           }
 //         });
 //       });
 
-//       independents.forEach((cand, index) => {
+//       independents.forEach((cand, i) => {
 //         if (cand.photo) {
-//           formData.append(`independents[${index}][photo]`, cand.photo);
+//           formData.append(`independents[${i}][photo]`, cand.photo);
 //         }
 //       });
 
-//       // debug (optional)
-//       // for (let [k, v] of formData.entries()) {
-//       //   console.log(k, v instanceof File ? v.name : v);
-//       // }
-
-//       await createElection(formData);
+//       const response = await createElection(formData);
+//       console.log('Server response:', response);
 
 //       setElectionTitle("");
 //       setStartDate("");
@@ -374,15 +300,11 @@
 //       alert("निर्वाचन सिर्जना सफल भयो!");
 //     } catch (error) {
 //       console.error('Submission error:', error);
-//       let errorMessage = "निर्वाचन सिर्जना गर्दा त्रुटि: ";
-//       if (error.response?.status === 401) {
-//         errorMessage += "Authentication failed. Please log in again.";
-//       } else if (error.response?.status === 400) {
-//         errorMessage += error.response?.data?.message || "Invalid data sent to the server.";
-//       } else {
-//         errorMessage += error.response?.data?.message || error.message || "Unknown error";
-//       }
-//       alert(errorMessage);
+//       const msg =
+//         error.response?.data?.message ||
+//         error.message ||
+//         "Unknown error";
+//       alert("निर्वाचन सिर्जना गर्दा त्रुटि: " + msg);
 //     } finally {
 //       setIsSubmitting(false);
 //     }
@@ -402,9 +324,6 @@
 //   return (
 //     <form className="election-form" onSubmit={handleSubmit}>
 //       <h2>त्रिभुवन विश्वविद्यालय कलेज निर्वाचन सिर्जना गर्नुहोस्</h2>
-
-//       {loadingVerified && <div className="info-line">भेरिफाइड विद्यार्थीहरू लोड हुँदै…</div>}
-//       {!loadingVerified && loadErr && <div className="error-line">{loadErr}</div>}
 
 //       <label>निर्वाचन शीर्षक</label>
 //       <input
@@ -431,6 +350,13 @@
 //         required
 //       />
 
+//       {/* Verified users status */}
+//       {loadingUsers && <div className="info">Loading verified students…</div>}
+//       {!loadingUsers && usersError && <div className="error">{usersError}</div>}
+//       {!loadingUsers && !usersError && verifiedUsers.length === 0 && (
+//         <div className="warning">No verified students found. Verify students first.</div>
+//       )}
+
 //       <div className="party-sections">
 //         <h3>पार्टीको उम्मेदवारहरू</h3>
 
@@ -449,48 +375,38 @@
 //             {section.partyName && (
 //               <>
 //                 {posts.map(({ label, key }) => {
-//                   const candidate = section.candidates[key];
-//                   const options = verifiedOptionsFor(candidate.userId);
+//                   const slot = section.candidates[key] || {};
+//                   const opts = optionsForSlot(slot.selectedUserId);
 //                   return (
 //                     <div key={key} className="candidate-section">
 //                       <label>{label}</label>
 
-//                       {/* Verified dropdown */}
+//                       {/* VERIFIED STUDENT DROPDOWN (no voterId displayed) */}
 //                       <select
-//                         value={candidate.userId}
-//                         onChange={e => setCandidateFromUser(i, key, e.target.value)}
+//                         value={slot.selectedUserId || ""}
+//                         onChange={(e) => selectCandidateUser(i, key, e.target.value)}
+//                         disabled={verifiedUsers.length === 0}
 //                       >
-//                         <option value="">-- {label} (भेरिफाइड) छान्नुहोस् --</option>
-//                         {options.map(u => (
+//                         <option value="">-- {label} का लागि विद्यार्थी छान्नुहोस् --</option>
+//                         {opts.map(u => (
 //                           <option key={u._id} value={u._id}>
 //                             {asUserLabel(u)}
 //                           </option>
 //                         ))}
 //                       </select>
 
-//                       {/* Optional photo override */}
+//                       {/* Optional photo upload (kept) */}
 //                       <input
 //                         type="file"
 //                         accept="image/*"
 //                         onChange={e => changeCandidatePhoto(i, key, e.target.files[0])}
 //                       />
-//                       {candidate.preview && (
+//                       {slot.preview && (
 //                         <img
-//                           src={candidate.preview}
+//                           src={slot.preview}
 //                           alt={`${label} preview`}
 //                           className="candidate-photo"
 //                         />
-//                       )}
-
-//                       {/* Clear button */}
-//                       {candidate.userId && (
-//                         <button
-//                           type="button"
-//                           className="small-clear"
-//                           onClick={() => clearCandidate(i, key)}
-//                         >
-//                           चयन हटाउनुहोस्
-//                         </button>
 //                       )}
 //                     </div>
 //                   );
@@ -499,15 +415,16 @@
 //                 <div className="members-section">
 //                   <label>१२ जना सदस्यहरू</label>
 //                   {section.candidates.members.map((member, idx) => {
-//                     const options = verifiedOptionsFor(member.userId);
+//                     const opts = optionsForSlot(member.selectedUserId);
 //                     return (
 //                       <div key={idx} className="member-section">
 //                         <select
-//                           value={member.userId}
-//                           onChange={e => setCandidateFromUser(i, "members", e.target.value, idx)}
+//                           value={member.selectedUserId || ""}
+//                           onChange={(e) => selectCandidateUser(i, "members", e.target.value, idx)}
+//                           disabled={verifiedUsers.length === 0}
 //                         >
-//                           <option value="">-- सदस्य {idx + 1} (भेरिफाइड) --</option>
-//                           {options.map(u => (
+//                           <option value="">-- सदस्य {idx + 1} छान्नुहोस् --</option>
+//                           {opts.map(u => (
 //                             <option key={u._id} value={u._id}>
 //                               {asUserLabel(u)}
 //                             </option>
@@ -525,16 +442,6 @@
 //                             alt={`सदस्य ${idx + 1} preview`}
 //                             className="candidate-photo"
 //                           />
-//                         )}
-
-//                         {member.userId && (
-//                           <button
-//                             type="button"
-//                             className="small-clear"
-//                             onClick={() => clearCandidate(i, "members", idx)}
-//                           >
-//                             हटाउनुहोस्
-//                           </button>
 //                         )}
 //                       </div>
 //                     );
@@ -557,13 +464,13 @@
 //       <div className="independent-section">
 //         <h3>स्वतन्त्र उम्मेदवारहरू</h3>
 //         {independents.map((cand, idx) => {
-//           const options = verifiedOptionsFor(cand.userId);
+//           const opts = optionsForSlot(cand.selectedUserId);
 //           return (
 //             <div key={idx} className="independent-candidate">
 //               <label>पद</label>
 //               <select
 //                 value={cand.post}
-//                 onChange={e => changeIndependent(idx, "post", e.target.value)}
+//                 onChange={e => changeIndependentField(idx, "post", e.target.value)}
 //               >
 //                 <option value="">-- पद छान्नुहोस् --</option>
 //                 {posts.map(({ label, key }) => (
@@ -572,24 +479,25 @@
 //                 <option value="members">सदस्य</option>
 //               </select>
 
-//               {/* Verified dropdown */}
+//               {/* VERIFIED STUDENT DROPDOWN */}
 //               <select
-//                 value={cand.userId}
-//                 onChange={e => setIndependentFromUser(idx, e.target.value)}
+//                 value={cand.selectedUserId || ""}
+//                 onChange={(e) => selectIndependentUser(idx, e.target.value)}
+//                 disabled={verifiedUsers.length === 0}
 //               >
-//                 <option value="">-- उम्मेदवार (भेरिफाइड) --</option>
-//                 {options.map(u => (
+//                 <option value="">-- उम्मेदवार छान्नुहोस् --</option>
+//                 {opts.map(u => (
 //                   <option key={u._id} value={u._id}>
 //                     {asUserLabel(u)}
 //                   </option>
 //                 ))}
 //               </select>
 
-//               {/* Optional photo override */}
+//               {/* Optional photo upload for independents */}
 //               <input
 //                 type="file"
 //                 accept="image/*"
-//                 onChange={e => changeIndependent(idx, "photo", e.target.files[0], true)}
+//                 onChange={e => changeIndependentPhoto(idx, e.target.files[0])}
 //               />
 //               {cand.preview && (
 //                 <img
@@ -637,13 +545,17 @@
 //       <button
 //         type="submit"
 //         className="submit-button"
-//         disabled={isSubmitting || loadingVerified}
+//         disabled={isSubmitting}
 //       >
 //         {isSubmitting ? "Submitting..." : "निर्वाचन सिर्जना गर्नुहोस्"}
 //       </button>
 //     </form>
 //   );
 // }
+
+
+
+
 
 import React, { useEffect, useMemo, useState } from 'react';
 import './ElectionForm.css';
@@ -674,7 +586,7 @@ export default function ElectionForm() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState("");
 
-  // party sections & independents (same structure you had, but we add selectedUserId fields)
+  // party sections & independents
   const [partySections, setPartySections] = useState([]);
   const [independents, setIndependents] = useState([]);
   const [samanupatikParties, setSamanupatikParties] = useState([]);
@@ -692,14 +604,12 @@ export default function ElectionForm() {
         setUsersError("");
         const res = await api.get('/api/users/verified');
         const list = Array.isArray(res.data) ? res.data : [];
-        // map & normalize; IMPORTANT: include symbolNumber, exclude voterId in UI
         const clean = list.map(u => ({
           _id: String(u._id),
           name: u.name,
           faculty: u.faculty || '',
           program: u.program || '',
           symbolNumber: u.symbolNumber || '',
-          // keep whatever photo path you store (optional preview only)
           photo: u.photo || '',
         }));
         if (alive) setVerifiedUsers(clean);
@@ -712,7 +622,6 @@ export default function ElectionForm() {
     return () => { alive = false; };
   }, []);
 
-  // ---------- helpers ----------
   function validateFile(file) {
     const filetypes = /jpeg|jpg|png/;
     const maxSize = 5 * 1024 * 1024; // 5MB
@@ -731,7 +640,6 @@ export default function ElectionForm() {
     setPartySections(prev => [...prev, {
       partyName: "",
       candidates: {
-        // add selectedUserId per slot; we still keep name/photo to match your backend payload
         president:    { name: "", photo: null, preview: null, selectedUserId: "" },
         vicePresident:{ name: "", photo: null, preview: null, selectedUserId: "" },
         secretary:    { name: "", photo: null, preview: null, selectedUserId: "" },
@@ -750,7 +658,6 @@ export default function ElectionForm() {
     });
   }
 
-  // set candidate FILE photo (unchanged from your version)
   function changeCandidatePhoto(sectionIndex, postKey, file, memberIndex = null) {
     if (file && !validateFile(file)) return;
     setPartySections(prev => {
@@ -769,7 +676,6 @@ export default function ElectionForm() {
     });
   }
 
-  // select verified student for a position (this sets candidate name automatically)
   function selectCandidateUser(sectionIndex, postKey, userId, memberIndex = null) {
     setPartySections(prev => {
       const copy = [...prev];
@@ -783,7 +689,7 @@ export default function ElectionForm() {
         arr[memberIndex] = {
           ...arr[memberIndex],
           selectedUserId: userId || "",
-          name, // keep name in payload for your backend
+          name,
         };
         section.candidates.members = arr;
       } else {
@@ -797,7 +703,7 @@ export default function ElectionForm() {
     });
   }
 
-  // Independents (same idea as above)
+  // Independents
   function addIndependent() {
     setIndependents(prev => [...prev, { post: "", selectedUserId: "", name: "", photo: null, preview: null }]);
   }
@@ -843,10 +749,9 @@ export default function ElectionForm() {
     });
   }
 
-  // ---------- "one person, one position" ----------
+  // One person, one position (client-side guard)
   const chosenUserIds = useMemo(() => {
     const set = new Set();
-
     for (const section of partySections) {
       const c = section.candidates || {};
       ['president','vicePresident','secretary','treasurer'].forEach(k => {
@@ -863,99 +768,189 @@ export default function ElectionForm() {
     return set;
   }, [partySections, independents]);
 
-  // Build a label that NEVER shows voterId
   const asUserLabel = (u) =>
     [u.name, u.faculty, u.program, u.symbolNumber ? `Reg: ${u.symbolNumber}` : null]
       .filter(Boolean)
       .join(' • ');
 
-  // Utility to get available options for a slot (allow keeping current selection)
   function optionsForSlot(currentSelectedId = "") {
     return verifiedUsers.filter(u => !chosenUserIds.has(u._id) || u._id === currentSelectedId);
   }
 
+  // async function handleSubmit(e) {
+  //   e.preventDefault();
+  //   if (isSubmitting) return;
+  //   if (!electionTitle || !startDate || !endDate) {
+  //     alert("निर्वाचन शीर्षक, सुरू मिति, र अन्त्य मिति अनिवार्य छन्!");
+  //     return;
+  //   }
+
+  //   try {
+  //     setIsSubmitting(true);
+  //     const formData = new FormData();
+  //     formData.append('electionTitle', electionTitle);
+  //     formData.append('startDate', startDate);
+  //     formData.append('endDate', endDate);
+
+  //     // ✅ Include candidateUserId for every slot
+  //     const sanitizedPartySections = partySections.map(section => ({
+  //       partyName: section.partyName || "",
+  //       candidates: {
+  //         president:    { name: section.candidates.president.name || "",    candidateUserId: section.candidates.president.selectedUserId || null },
+  //         vicePresident:{ name: section.candidates.vicePresident.name || "", candidateUserId: section.candidates.vicePresident.selectedUserId || null },
+  //         secretary:    { name: section.candidates.secretary.name || "",    candidateUserId: section.candidates.secretary.selectedUserId || null },
+  //         treasurer:    { name: section.candidates.treasurer.name || "",    candidateUserId: section.candidates.treasurer.selectedUserId || null },
+  //         members: (section.candidates.members || []).map(m => ({
+  //           name: m.name || "",
+  //           candidateUserId: m.selectedUserId || null
+  //         })),
+  //       },
+  //     }));
+  //     formData.append('partySections', JSON.stringify(sanitizedPartySections));
+
+  //     const sanitizedIndependents = independents.map(cand => ({
+  //       post: cand.post || "",
+  //       name: cand.name || "",
+  //       candidateUserId: cand.selectedUserId || null,
+  //     }));
+  //     formData.append('independents', JSON.stringify(sanitizedIndependents));
+
+  //     formData.append('samanupatikParties', JSON.stringify(samanupatikParties.filter(Boolean)));
+
+  //     // FILES keep same keys
+  //     partySections.forEach((section, sIdx) => {
+  //       Object.keys(section.candidates).forEach((key) => {
+  //         if (key !== 'members') {
+  //           const f = section.candidates[key].photo;
+  //           if (f) formData.append(`partySections[${sIdx}][candidates][${key}][photo]`, f);
+  //         } else {
+  //           (section.candidates.members || []).forEach((member, mIdx) => {
+  //             if (member.photo) {
+  //               formData.append(`partySections[${sIdx}][candidates][members][${mIdx}][photo]`, member.photo);
+  //             }
+  //           });
+  //         }
+  //       });
+  //     });
+
+  //     independents.forEach((cand, i) => {
+  //       if (cand.photo) {
+  //         formData.append(`independents[${i}][photo]`, cand.photo);
+  //       }
+  //     });
+
+  //     const response = await createElection(formData);
+  //     console.log('Server response:', response);
+
+  //     setElectionTitle("");
+  //     setStartDate("");
+  //     setEndDate("");
+  //     setPartySections([]);
+  //     setIndependents([]);
+  //     setSamanupatikParties([]);
+  //     alert("निर्वाचन सिर्जना सफल भयो!");
+  //   } catch (error) {
+  //     console.error('Submission error:', error);
+  //     const msg = error.response?.data?.message || error.message || "Unknown error";
+  //     alert("निर्वाचन सिर्जना गर्दा त्रुटि: " + msg);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // }
+
   // ---------- submit ----------
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (isSubmitting) return;
-    if (!electionTitle || !startDate || !endDate) {
-      alert("निर्वाचन शीर्षक, सुरू मिति, र अन्त्य मिति अनिवार्य छन्!");
-      return;
-    }
+async function handleSubmit(e) {
+  e.preventDefault();
+  if (isSubmitting) return;
+  if (!electionTitle || !startDate || !endDate) {
+    alert("निर्वाचन शीर्षक, सुरू मिति, र अन्त्य मिति अनिवार्य छन्!");
+    return;
+  }
 
-    try {
-      setIsSubmitting(true);
-      const formData = new FormData();
-      formData.append('electionTitle', electionTitle);
-      formData.append('startDate', startDate);
-      formData.append('endDate', endDate);
+  try {
+    setIsSubmitting(true);
+    const formData = new FormData();
+    formData.append('electionTitle', electionTitle);
+    formData.append('startDate', startDate);
+    formData.append('endDate', endDate);
 
-      // IMPORTANT: we keep your existing payload shape (names & files). Names come from selected verified users.
-      const sanitizedPartySections = partySections.map(section => ({
-        partyName: section.partyName || "",
-        candidates: {
-          president:    { name: section.candidates.president.name || "" },
-          vicePresident:{ name: section.candidates.vicePresident.name || "" },
-          secretary:    { name: section.candidates.secretary.name || "" },
-          treasurer:    { name: section.candidates.treasurer.name || "" },
-          members: (section.candidates.members || []).map(m => ({ name: m.name || "" })),
+    // ✅ Include candidateUserId everywhere; keep name too
+    const sanitizedPartySections = partySections.map(section => ({
+      partyName: section.partyName || "",
+      candidates: {
+        president: {
+          name: section.candidates.president.name || "",
+          candidateUserId: section.candidates.president.selectedUserId || ""
         },
-      }));
-      formData.append('partySections', JSON.stringify(sanitizedPartySections));
+        vicePresident: {
+          name: section.candidates.vicePresident.name || "",
+          candidateUserId: section.candidates.vicePresident.selectedUserId || ""
+        },
+        secretary: {
+          name: section.candidates.secretary.name || "",
+          candidateUserId: section.candidates.secretary.selectedUserId || ""
+        },
+        treasurer: {
+          name: section.candidates.treasurer.name || "",
+          candidateUserId: section.candidates.treasurer.selectedUserId || ""
+        },
+        members: (section.candidates.members || []).map(m => ({
+          name: m.name || "",
+          candidateUserId: m.selectedUserId || ""
+        })),
+      },
+    }));
+    formData.append('partySections', JSON.stringify(sanitizedPartySections));
 
-      const sanitizedIndependents = independents.map(cand => ({
-        post: cand.post || "",
-        name: cand.name || "",
-      }));
-      formData.append('independents', JSON.stringify(sanitizedIndependents));
+    // ✅ Independents: include candidateUserId too
+    const sanitizedIndependents = independents.map(cand => ({
+      post: cand.post || "",
+      name: cand.name || "",
+      candidateUserId: cand.selectedUserId || ""
+    }));
+    formData.append('independents', JSON.stringify(sanitizedIndependents));
 
-      formData.append('samanupatikParties', JSON.stringify(samanupatikParties.filter(Boolean)));
+    formData.append('samanupatikParties', JSON.stringify(samanupatikParties.filter(Boolean)));
 
-      // FILES (same keys you already use)
-      partySections.forEach((section, sIdx) => {
-        Object.keys(section.candidates).forEach((key) => {
-          if (key !== 'members') {
-            const f = section.candidates[key].photo;
-            if (f) {
-              formData.append(`partySections[${sIdx}][candidates][${key}][photo]`, f);
+    // FILES (unchanged)
+    partySections.forEach((section, sIdx) => {
+      Object.keys(section.candidates).forEach((key) => {
+        if (key !== 'members') {
+          const f = section.candidates[key].photo;
+          if (f) formData.append(`partySections[${sIdx}][candidates][${key}][photo]`, f);
+        } else {
+          (section.candidates.members || []).forEach((member, mIdx) => {
+            if (member.photo) {
+              formData.append(`partySections[${sIdx}][candidates][members][${mIdx}][photo]`, member.photo);
             }
-          } else {
-            (section.candidates.members || []).forEach((member, mIdx) => {
-              if (member.photo) {
-                formData.append(`partySections[${sIdx}][candidates][members][${mIdx}][photo]`, member.photo);
-              }
-            });
-          }
-        });
-      });
-
-      independents.forEach((cand, i) => {
-        if (cand.photo) {
-          formData.append(`independents[${i}][photo]`, cand.photo);
+          });
         }
       });
+    });
 
-      const response = await createElection(formData);
-      console.log('Server response:', response);
+    independents.forEach((cand, i) => {
+      if (cand.photo) formData.append(`independents[${i}][photo]`, cand.photo);
+    });
 
-      setElectionTitle("");
-      setStartDate("");
-      setEndDate("");
-      setPartySections([]);
-      setIndependents([]);
-      setSamanupatikParties([]);
-      alert("निर्वाचन सिर्जना सफल भयो!");
-    } catch (error) {
-      console.error('Submission error:', error);
-      const msg =
-        error.response?.data?.message ||
-        error.message ||
-        "Unknown error";
-      alert("निर्वाचन सिर्जना गर्दा त्रुटि: " + msg);
-    } finally {
-      setIsSubmitting(false);
-    }
+    const response = await createElection(formData);
+    console.log('Server response:', response);
+
+    setElectionTitle("");
+    setStartDate("");
+    setEndDate("");
+    setPartySections([]);
+    setIndependents([]);
+    setSamanupatikParties([]);
+    alert("निर्वाचन सिर्जना सफल भयो!");
+  } catch (error) {
+    console.error('Submission error:', error);
+    const msg = error.response?.data?.message || error.message || "Unknown error";
+    alert("निर्वाचन सिर्जना गर्दा त्रुटि: " + msg);
+  } finally {
+    setIsSubmitting(false);
   }
+}
+
 
   function getAvailableParties(index) {
     const chosenExceptCurrent = chosenParties.filter((_, i) => i !== index);
@@ -967,7 +962,6 @@ export default function ElectionForm() {
     return partiesList.filter(p => !chosenExceptCurrent.includes(p));
   }
 
-  // ---------- UI ----------
   return (
     <form className="election-form" onSubmit={handleSubmit}>
       <h2>त्रिभुवन विश्वविद्यालय कलेज निर्वाचन सिर्जना गर्नुहोस्</h2>
@@ -997,7 +991,6 @@ export default function ElectionForm() {
         required
       />
 
-      {/* Verified users status */}
       {loadingUsers && <div className="info">Loading verified students…</div>}
       {!loadingUsers && usersError && <div className="error">{usersError}</div>}
       {!loadingUsers && !usersError && verifiedUsers.length === 0 && (
@@ -1028,7 +1021,6 @@ export default function ElectionForm() {
                     <div key={key} className="candidate-section">
                       <label>{label}</label>
 
-                      {/* VERIFIED STUDENT DROPDOWN (no voterId displayed) */}
                       <select
                         value={slot.selectedUserId || ""}
                         onChange={(e) => selectCandidateUser(i, key, e.target.value)}
@@ -1042,7 +1034,6 @@ export default function ElectionForm() {
                         ))}
                       </select>
 
-                      {/* Optional photo upload (kept) */}
                       <input
                         type="file"
                         accept="image/*"
@@ -1099,11 +1090,7 @@ export default function ElectionForm() {
           </div>
         ))}
 
-        <button
-          type="button"
-          onClick={addPartySection}
-          className="add-button"
-        >
+        <button type="button" onClick={addPartySection} className="add-button">
           + अर्को पार्टी थप्नुहोस्
         </button>
       </div>
@@ -1126,7 +1113,6 @@ export default function ElectionForm() {
                 <option value="members">सदस्य</option>
               </select>
 
-              {/* VERIFIED STUDENT DROPDOWN */}
               <select
                 value={cand.selectedUserId || ""}
                 onChange={(e) => selectIndependentUser(idx, e.target.value)}
@@ -1140,7 +1126,6 @@ export default function ElectionForm() {
                 ))}
               </select>
 
-              {/* Optional photo upload for independents */}
               <input
                 type="file"
                 accept="image/*"
@@ -1157,11 +1142,7 @@ export default function ElectionForm() {
           );
         })}
 
-        <button
-          type="button"
-          onClick={addIndependent}
-          className="add-button"
-        >
+        <button type="button" onClick={addIndependent} className="add-button">
           + स्वतन्त्र उम्मेदवार थप्नुहोस्
         </button>
       </div>
@@ -1180,20 +1161,12 @@ export default function ElectionForm() {
             ))}
           </select>
         ))}
-        <button
-          type="button"
-          onClick={addSamanupatikParty}
-          className="add-button"
-        >
+        <button type="button" onClick={addSamanupatikParty} className="add-button">
           + पार्टी थप्नुहोस्
         </button>
       </div>
 
-      <button
-        type="submit"
-        className="submit-button"
-        disabled={isSubmitting}
-      >
+      <button type="submit" className="submit-button" disabled={isSubmitting}>
         {isSubmitting ? "Submitting..." : "निर्वाचन सिर्जना गर्नुहोस्"}
       </button>
     </form>

@@ -1,3 +1,237 @@
+// import React, { useEffect, useMemo, useState, useCallback } from 'react';
+// import { Bar } from 'react-chartjs-2';
+// import {
+//   Chart as ChartJS,
+//   BarElement,
+//   CategoryScale,
+//   LinearScale,
+//   Tooltip,
+//   Legend,
+//   Title,
+// } from 'chart.js';
+// import api from '../api';
+// import './ResultPage.css';
+
+// ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
+
+// const POSITIONS = ['president', 'vicePresident', 'secretary', 'treasurer', 'members'];
+// const POSITION_TITLES = {
+//   president: 'President',
+//   vicePresident: 'Vice President',
+//   secretary: 'Secretary',
+//   treasurer: 'Treasurer',
+//   members: 'Members',
+// };
+
+// function groupByPosition(results) {
+//   const g = {};
+//   for (const p of POSITIONS) g[p] = [];
+//   for (const r of results || []) {
+//     if (!g[r.position]) g[r.position] = [];
+//     g[r.position].push(r);
+//   }
+//   for (const p of Object.keys(g)) g[p].sort((a, b) => b.votes - a.votes);
+//   return g;
+// }
+
+// function ElectionBox({ box }) {
+//   const grouped = useMemo(() => groupByPosition(box.results), [box.results]);
+
+//   // Map probability by position+candidateId for quick lookup
+//   const probMap = useMemo(() => {
+//     const m = {};
+//     for (const pos of POSITIONS) {
+//       for (const r of (box.probabilities?.positions?.[pos] || [])) {
+//         m[`${pos}|${r.candidateId}`] = r.probability;
+//       }
+//     }
+//     return m;
+//   }, [box.probabilities]);
+
+//   return (
+//     <div className="election-card">
+//       <div className="election-header">
+//         <div className="election-title">{box.title || 'Election'}</div>
+//         <div className="election-dates">
+//           {box.startDate ? new Date(box.startDate).toLocaleDateString() : '—'} &nbsp;–&nbsp;
+//           {box.endDate ? new Date(box.endDate).toLocaleDateString() : '—'}
+//         </div>
+//       </div>
+
+//       {POSITIONS.map((pos) => {
+//         const rows = grouped[pos] || [];
+//         if (!rows.length) return null;
+
+//         const labels = rows.map((r) => `${r.name}${r.party ? ` (${r.party})` : ''}`);
+//         const data = rows.map((r) => r.votes);
+//         const perc = rows.map((r) => r.percentage);
+
+//         const chartData = {
+//           labels,
+//           datasets: [
+//             {
+//               label: 'Votes',
+//               data,
+//             },
+//           ],
+//         };
+
+//         const options = {
+//           responsive: true,
+//           maintainAspectRatio: false,
+//           plugins: {
+//             legend: { display: false },
+//             tooltip: {
+//               callbacks: {
+//                 label: (ctx) => {
+//                   const v = ctx.raw ?? 0;
+//                   const i = ctx.dataIndex;
+//                   const p = perc[i] ?? 0;
+//                   return `Votes: ${v} (${p}%)`;
+//                 },
+//               },
+//             },
+//             title: { display: false },
+//           },
+//           scales: {
+//             y: { beginAtZero: true, ticks: { precision: 0 } },
+//           },
+//         };
+
+//         return (
+//           <div className="position-card" key={pos}>
+//             <div className="position-title">{POSITION_TITLES[pos]}</div>
+//             <div className="chart-wrap">
+//               <Bar data={chartData} options={options} />
+//             </div>
+
+//             <table className="mini-table">
+//               <thead>
+//                 <tr>
+//                   <th style={{ width: 28 }}>#</th>
+//                   <th>Candidate</th>
+//                   <th style={{ textAlign: 'right', width: 80 }}>Votes</th>
+//                   <th style={{ textAlign: 'right', width: 70 }}>%</th>
+//                   <th style={{ textAlign: 'right', width: 90 }}>Prob %</th>
+//                 </tr>
+//               </thead>
+//               <tbody>
+//                 {rows.map((r, idx) => {
+//                   const prob = probMap[`${pos}|${r.candidateId}`];
+//                   return (
+//                     <tr key={r.candidateId}>
+//                       <td>{idx + 1}</td>
+//                       <td>{r.name}{r.party ? ` (${r.party})` : ''}</td>
+//                       <td style={{ textAlign: 'right' }}>{r.votes}</td>
+//                       <td style={{ textAlign: 'right' }}>{r.percentage}%</td>
+//                       <td style={{ textAlign: 'right' }}>{prob != null ? `${prob}%` : '—'}</td>
+//                     </tr>
+//                   );
+//                 })}
+//               </tbody>
+//             </table>
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+// export default function ResultPage() {
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState('');
+//   const [electionBoxes, setElectionBoxes] = useState([]); // [{...}]
+
+//   const fetchOne = useCallback(async (election) => {
+//   const resultsData = await api
+//     .get(election?._id ? `/api/vote/results?electionId=${election._id}` : '/api/vote/results')
+//     .then(r => r.data || { electionId: '', results: [] });
+
+//   // Try probability; swallow 404 so one bad id doesn't break the page
+//   let probData = null;
+//   try {
+//     const p = await api.get(
+//       election?._id ? `/api/election/${election._id}/probability` : '/api/election/probability'
+//     );
+//     probData = p.data;
+//   } catch (e) {
+//     if (e.response?.status !== 404) {
+//       // Only rethrow for non-404 (network, 500, etc.)
+//       throw e;
+//     }
+//     // For 404, leave probData as null so UI still renders results
+//   }
+
+//   return {
+//     electionId: resultsData.electionId || election?._id || '',
+//     title: election?.electionTitle || probData?.title || '',
+//     startDate: election?.startDate || '',
+//     endDate: election?.endDate || '',
+//     results: Array.isArray(resultsData.results) ? resultsData.results : [],
+//     probabilities: probData, // can be null; UI handles it
+//   };
+// }, []);
+
+
+
+//   const loadData = useCallback(async () => {
+//     try {
+//       setLoading(true); setError('');
+//       let elections = [];
+//       try {
+//         const list = await api.get('/api/election');
+//         elections = Array.isArray(list.data) ? list.data : [];
+//       } catch {
+//         elections = [];
+//       }
+
+//       if (elections.length) {
+//         elections.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+//         const boxes = await Promise.all(elections.map((el) => fetchOne(el)));
+//         setElectionBoxes(boxes);
+//       } else {
+//         const box = await fetchOne(null);
+//         setElectionBoxes([box]);
+//       }
+//     } catch (e) {
+//       console.error('Result load error:', e);
+//       setError(e.response?.data?.message || e.message || 'Failed to load results');
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [fetchOne]);
+
+//   useEffect(() => {
+//     loadData();
+//     const id = setInterval(loadData, 10000); // auto-refresh every 10s
+//     return () => clearInterval(id);
+//   }, [loadData]);
+
+//   return (
+//     <div className="results-page">
+//       <div className="results-header">
+//         <h2>Election Results</h2>
+//         <button className="refresh-btn" onClick={loadData}>Refresh</button>
+//       </div>
+
+//       {loading && <p>Loading results…</p>}
+//       {!loading && error && <p className="error">{error}</p>}
+
+//       {!loading && !error && electionBoxes.length === 0 && (
+//         <div className="empty-box">No elections found.</div>
+//       )}
+
+//       {!loading && !error && electionBoxes.length > 0 && (
+//         <div className="election-grid">
+//           {electionBoxes.map((box) => (
+//             <ElectionBox key={box.electionId || Math.random()} box={box} />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -34,16 +268,52 @@ function groupByPosition(results) {
   return g;
 }
 
-function ElectionBox({ title, startDate, endDate, results }) {
-  const grouped = useMemo(() => groupByPosition(results), [results]);
+/** If an election has zero votes (so backend returns empty list for some candidates),
+ *  use the probability payload to make sure all candidates are shown with votes:0.
+ */
+function mergeResultsWithProbabilities(results, probabilities) {
+  const out = Array.isArray(results) ? [...results] : [];
+  const have = new Set(out.map(r => `${r.position}|${r.candidateId}`));
+  const pos = probabilities?.positions || {};
+  for (const p of POSITIONS) {
+    for (const c of (pos[p] || [])) {
+      const key = `${p}|${c.candidateId}`;
+      if (!have.has(key)) {
+        out.push({
+          candidateId: c.candidateId,
+          position: p,
+          name: c.name || '',
+          party: c.party || '',
+          votes: 0,
+          percentage: 0,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+function ElectionBox({ box }) {
+  const grouped = useMemo(() => groupByPosition(box.results), [box.results]);
+
+  // Map probability by position+candidateId for quick lookup
+  const probMap = useMemo(() => {
+    const m = {};
+    for (const pos of POSITIONS) {
+      for (const r of (box.probabilities?.positions?.[pos] || [])) {
+        m[`${pos}|${r.candidateId}`] = r.probability;
+      }
+    }
+    return m;
+  }, [box.probabilities]);
 
   return (
     <div className="election-card">
       <div className="election-header">
-        <div className="election-title">{title || 'Election'}</div>
+        <div className="election-title">{box.title || 'Election'}</div>
         <div className="election-dates">
-          {startDate ? new Date(startDate).toLocaleDateString() : '—'} &nbsp;–&nbsp;
-          {endDate ? new Date(endDate).toLocaleDateString() : '—'}
+          {box.startDate ? new Date(box.startDate).toLocaleDateString() : '—'} &nbsp;–&nbsp;
+          {box.endDate ? new Date(box.endDate).toLocaleDateString() : '—'}
         </div>
       </div>
 
@@ -61,8 +331,6 @@ function ElectionBox({ title, startDate, endDate, results }) {
             {
               label: 'Votes',
               data,
-              // backgroundColor omitted -> Chart.js default color palette
-              // You can add colors if you want, but keeping default keeps it simple
             },
           ],
         };
@@ -82,15 +350,10 @@ function ElectionBox({ title, startDate, endDate, results }) {
                 },
               },
             },
-            title: {
-              display: false,
-            },
+            title: { display: false },
           },
           scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { precision: 0 },
-            },
+            y: { beginAtZero: true, ticks: { precision: 0 } },
           },
         };
 
@@ -101,7 +364,6 @@ function ElectionBox({ title, startDate, endDate, results }) {
               <Bar data={chartData} options={options} />
             </div>
 
-            {/* Optional little table under the chart */}
             <table className="mini-table">
               <thead>
                 <tr>
@@ -109,17 +371,22 @@ function ElectionBox({ title, startDate, endDate, results }) {
                   <th>Candidate</th>
                   <th style={{ textAlign: 'right', width: 80 }}>Votes</th>
                   <th style={{ textAlign: 'right', width: 70 }}>%</th>
+                  <th style={{ textAlign: 'right', width: 90 }}>Prob %</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, idx) => (
-                  <tr key={r.candidateId}>
-                    <td>{idx + 1}</td>
-                    <td>{r.name}{r.party ? ` (${r.party})` : ''}</td>
-                    <td style={{ textAlign: 'right' }}>{r.votes}</td>
-                    <td style={{ textAlign: 'right' }}>{r.percentage}%</td>
-                  </tr>
-                ))}
+                {rows.map((r, idx) => {
+                  const prob = probMap[`${pos}|${r.candidateId}`];
+                  return (
+                    <tr key={r.candidateId}>
+                      <td>{idx + 1}</td>
+                      <td>{r.name}{r.party ? ` (${r.party})` : ''}</td>
+                      <td style={{ textAlign: 'right' }}>{r.votes}</td>
+                      <td style={{ textAlign: 'right' }}>{r.percentage}%</td>
+                      <td style={{ textAlign: 'right' }}>{prob != null ? `${prob}%` : '—'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -132,32 +399,44 @@ function ElectionBox({ title, startDate, endDate, results }) {
 export default function ResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [electionBoxes, setElectionBoxes] = useState([]); // [{...}]
 
-  // If /api/election exists we’ll render one box per election; otherwise we’ll render the active/latest one.
-  const [electionBoxes, setElectionBoxes] = useState([]); // [{electionId, title, startDate, endDate, results: []}]
+  const fetchOne = useCallback(async (election) => {
+    const resultsData = await api
+      .get(election?._id ? `/api/vote/results?electionId=${election._id}` : '/api/vote/results')
+      .then(r => r.data || { electionId: '', results: [] });
 
-  const fetchOneElectionResults = useCallback(async (election) => {
-    const url = election?._id
-      ? `/api/vote/results?electionId=${election._id}`
-      : '/api/vote/results';
+    // Try probability; swallow 404 so one bad id doesn't break the page
+    let probData = null;
+    try {
+      const p = await api.get(
+        election?._id ? `/api/election/${election._id}/probability` : '/api/election/probability'
+      );
+      probData = p.data;
+    } catch (e) {
+      if (e.response?.status !== 404) {
+        // Only rethrow for non-404 (network, 500, etc.)
+        throw e;
+      }
+      // For 404, leave probData as null so UI still renders results
+    }
 
-    const data = await api.get(url).then((r) => r.data || { electionId: '', results: [] });
+    // Ensure we always have every candidate visible (even with 0 votes)
+    const mergedResults = mergeResultsWithProbabilities(resultsData.results, probData);
 
     return {
-      electionId: data.electionId || election?._id || '',
-      title: election?.electionTitle || '',
+      electionId: resultsData.electionId || election?._id || '',
+      title: election?.electionTitle || probData?.title || '',
       startDate: election?.startDate || '',
       endDate: election?.endDate || '',
-      results: Array.isArray(data.results) ? data.results : [],
+      results: mergedResults,      // merged
+      probabilities: probData,     // can be null
     };
   }, []);
 
   const loadData = useCallback(async () => {
     try {
-      setLoading(true);
-      setError('');
-
-      // Try to get all elections (this route should exist; if not, we fallback gracefully)
+      setLoading(true); setError('');
       let elections = [];
       try {
         const list = await api.get('/api/election');
@@ -167,13 +446,11 @@ export default function ResultPage() {
       }
 
       if (elections.length) {
-        // Show ALL elections as boxes, newest first
         elections.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-        const boxes = await Promise.all(elections.map((el) => fetchOneElectionResults(el)));
+        const boxes = await Promise.all(elections.map((el) => fetchOne(el)));
         setElectionBoxes(boxes);
       } else {
-        // Fallback: just show the active/latest election (backend decides)
-        const box = await fetchOneElectionResults(null);
+        const box = await fetchOne(null);
         setElectionBoxes([box]);
       }
     } catch (e) {
@@ -182,10 +459,12 @@ export default function ResultPage() {
     } finally {
       setLoading(false);
     }
-  }, [fetchOneElectionResults]);
+  }, [fetchOne]);
 
   useEffect(() => {
     loadData();
+    const id = setInterval(loadData, 10000); // auto-refresh every 10s
+    return () => clearInterval(id);
   }, [loadData]);
 
   return (
@@ -205,16 +484,11 @@ export default function ResultPage() {
       {!loading && !error && electionBoxes.length > 0 && (
         <div className="election-grid">
           {electionBoxes.map((box) => (
-            <ElectionBox
-              key={box.electionId || Math.random()}
-              title={box.title}
-              startDate={box.startDate}
-              endDate={box.endDate}
-              results={box.results}
-            />
+            <ElectionBox key={box.electionId || `${box.title}-${box.startDate}`} box={box} />
           ))}
         </div>
       )}
     </div>
   );
 }
+
