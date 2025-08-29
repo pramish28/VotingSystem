@@ -29,3 +29,5 @@ export const renderBarChart = (canvasRef, data, options = {}) => {
     },
   })
 }
+
+// ojfpowcehwncscso

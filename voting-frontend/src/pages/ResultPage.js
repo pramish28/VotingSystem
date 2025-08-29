@@ -34,6 +34,31 @@
 //   return g;
 // }
 
+// /** If an election has zero votes (so backend returns empty list for some candidates),
+//  *  use the probability payload to make sure all candidates are shown with votes:0.
+//  */
+// function mergeResultsWithProbabilities(results, probabilities) {
+//   const out = Array.isArray(results) ? [...results] : [];
+//   const have = new Set(out.map(r => `${r.position}|${r.candidateId}`));
+//   const pos = probabilities?.positions || {};
+//   for (const p of POSITIONS) {
+//     for (const c of (pos[p] || [])) {
+//       const key = `${p}|${c.candidateId}`;
+//       if (!have.has(key)) {
+//         out.push({
+//           candidateId: c.candidateId,
+//           position: p,
+//           name: c.name || '',
+//           party: c.party || '',
+//           votes: 0,
+//           percentage: 0,
+//         });
+//       }
+//     }
+//   }
+//   return out;
+// }
+
 // function ElectionBox({ box }) {
 //   const grouped = useMemo(() => groupByPosition(box.results), [box.results]);
 
@@ -143,36 +168,37 @@
 //   const [electionBoxes, setElectionBoxes] = useState([]); // [{...}]
 
 //   const fetchOne = useCallback(async (election) => {
-//   const resultsData = await api
-//     .get(election?._id ? `/api/vote/results?electionId=${election._id}` : '/api/vote/results')
-//     .then(r => r.data || { electionId: '', results: [] });
+//     const resultsData = await api
+//       .get(election?._id ? `/api/vote/results?electionId=${election._id}` : '/api/vote/results')
+//       .then(r => r.data || { electionId: '', results: [] });
 
-//   // Try probability; swallow 404 so one bad id doesn't break the page
-//   let probData = null;
-//   try {
-//     const p = await api.get(
-//       election?._id ? `/api/election/${election._id}/probability` : '/api/election/probability'
-//     );
-//     probData = p.data;
-//   } catch (e) {
-//     if (e.response?.status !== 404) {
-//       // Only rethrow for non-404 (network, 500, etc.)
-//       throw e;
+//     // Try probability; swallow 404 so one bad id doesn't break the page
+//     let probData = null;
+//     try {
+//       const p = await api.get(
+//         election?._id ? `/api/election/${election._id}/probability` : '/api/election/probability'
+//       );
+//       probData = p.data;
+//     } catch (e) {
+//       if (e.response?.status !== 404) {
+//         // Only rethrow for non-404 (network, 500, etc.)
+//         throw e;
+//       }
+//       // For 404, leave probData as null so UI still renders results
 //     }
-//     // For 404, leave probData as null so UI still renders results
-//   }
 
-//   return {
-//     electionId: resultsData.electionId || election?._id || '',
-//     title: election?.electionTitle || probData?.title || '',
-//     startDate: election?.startDate || '',
-//     endDate: election?.endDate || '',
-//     results: Array.isArray(resultsData.results) ? resultsData.results : [],
-//     probabilities: probData, // can be null; UI handles it
-//   };
-// }, []);
+//     // Ensure we always have every candidate visible (even with 0 votes)
+//     const mergedResults = mergeResultsWithProbabilities(resultsData.results, probData);
 
-
+//     return {
+//       electionId: resultsData.electionId || election?._id || '',
+//       title: election?.electionTitle || probData?.title || '',
+//       startDate: election?.startDate || '',
+//       endDate: election?.endDate || '',
+//       results: mergedResults,      // merged
+//       probabilities: probData,     // can be null
+//     };
+//   }, []);
 
 //   const loadData = useCallback(async () => {
 //     try {
@@ -224,7 +250,7 @@
 //       {!loading && !error && electionBoxes.length > 0 && (
 //         <div className="election-grid">
 //           {electionBoxes.map((box) => (
-//             <ElectionBox key={box.electionId || Math.random()} box={box} />
+//             <ElectionBox key={box.electionId || `${box.title}-${box.startDate}`} box={box} />
 //           ))}
 //         </div>
 //       )}
@@ -245,6 +271,7 @@ import {
 } from 'chart.js';
 import api from '../api';
 import './ResultPage.css';
+import { socket } from '../socket'; // 👈 NEW
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
@@ -268,9 +295,7 @@ function groupByPosition(results) {
   return g;
 }
 
-/** If an election has zero votes (so backend returns empty list for some candidates),
- *  use the probability payload to make sure all candidates are shown with votes:0.
- */
+/** ensure candidates with 0 votes still show (from probability payload) */
 function mergeResultsWithProbabilities(results, probabilities) {
   const out = Array.isArray(results) ? [...results] : [];
   const have = new Set(out.map(r => `${r.position}|${r.candidateId}`));
@@ -296,7 +321,6 @@ function mergeResultsWithProbabilities(results, probabilities) {
 function ElectionBox({ box }) {
   const grouped = useMemo(() => groupByPosition(box.results), [box.results]);
 
-  // Map probability by position+candidateId for quick lookup
   const probMap = useMemo(() => {
     const m = {};
     for (const pos of POSITIONS) {
@@ -399,14 +423,13 @@ function ElectionBox({ box }) {
 export default function ResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [electionBoxes, setElectionBoxes] = useState([]); // [{...}]
+  const [electionBoxes, setElectionBoxes] = useState([]);
 
   const fetchOne = useCallback(async (election) => {
     const resultsData = await api
       .get(election?._id ? `/api/vote/results?electionId=${election._id}` : '/api/vote/results')
       .then(r => r.data || { electionId: '', results: [] });
 
-    // Try probability; swallow 404 so one bad id doesn't break the page
     let probData = null;
     try {
       const p = await api.get(
@@ -414,14 +437,9 @@ export default function ResultPage() {
       );
       probData = p.data;
     } catch (e) {
-      if (e.response?.status !== 404) {
-        // Only rethrow for non-404 (network, 500, etc.)
-        throw e;
-      }
-      // For 404, leave probData as null so UI still renders results
+      if (e.response?.status !== 404) throw e;
     }
 
-    // Ensure we always have every candidate visible (even with 0 votes)
     const mergedResults = mergeResultsWithProbabilities(resultsData.results, probData);
 
     return {
@@ -429,8 +447,8 @@ export default function ResultPage() {
       title: election?.electionTitle || probData?.title || '',
       startDate: election?.startDate || '',
       endDate: election?.endDate || '',
-      results: mergedResults,      // merged
-      probabilities: probData,     // can be null
+      results: mergedResults,
+      probabilities: probData,
     };
   }, []);
 
@@ -463,8 +481,28 @@ export default function ResultPage() {
 
   useEffect(() => {
     loadData();
-    const id = setInterval(loadData, 10000); // auto-refresh every 10s
+    const id = setInterval(loadData, 10000);
     return () => clearInterval(id);
+  }, [loadData]);
+
+  // 👇 Listen for server push "probability:update"
+  useEffect(() => {
+    const onConnect = () => console.log('[socket] connected:', socket.id);
+    const onDisconnect = () => console.log('[socket] disconnected');
+    const onProbUpdate = (_payload) => {
+      console.log('[socket] probability:update → reloading results');
+      loadData();
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('probability:update', onProbUpdate);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('probability:update', onProbUpdate);
+    };
   }, [loadData]);
 
   return (
@@ -491,4 +529,3 @@ export default function ResultPage() {
     </div>
   );
 }
-
