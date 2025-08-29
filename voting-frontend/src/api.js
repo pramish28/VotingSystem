@@ -39,7 +39,9 @@ api.interceptors.response.use(
 // Export helpers that ALWAYS use this instance
 export async function createElection(formData) {
   // Don't set 'Content-Type' yourself — axios will set the correct boundary for FormData
-  return api.post('/api/election/create', formData);
+  return api.post('/api/election/create', formData, {
+    timeout: 30000, 
+  });
 }
 
 export default api;
