@@ -141,71 +141,6 @@ const confirmAllVotes = async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
-
-// const getResults = async (req, res) => {
-//   try {
-//     let { electionId } = req.query;
-
-//     if (!electionId) {
-//       const now = new Date();
-//       let el = await Election.findOne({ startDate: { $lte: now }, endDate: { $gte: now } }).sort({ startDate: -1 }).lean();
-//       if (!el) el = await Election.findOne().sort({ startDate: -1 }).lean();
-//       if (!el) return res.json({ electionId: '', results: [] });
-//       electionId = String(el._id);
-//     }
-
-//     const election = await Election.findById(electionId).lean();
-//     if (!election) return res.status(404).json({ message: 'Election not found.' });
-
-//     const agg = await Vote.aggregate([
-//       { $match: { electionId: election._id, status: 'confirmed' } },
-//       { $group: { _id: { candidateId: '$candidateId', position: '$position' }, votes: { $sum: 1 } } },
-//     ]);
-
-//     const candidateMap = new Map();
-//     for (const section of election.partySections || []) {
-//       const party = section.partyName || '';
-//       const c = section.candidates || {};
-//       for (const k of ['president', 'vicePresident', 'secretary', 'treasurer']) {
-//         const slot = c[k];
-//         if (slot?._id) candidateMap.set(String(slot._id), { name: slot.name, party, position: k });
-//       }
-//       for (const m of c.members || []) {
-//         if (m?._id) candidateMap.set(String(m._id), { name: m.name, party, position: 'members' });
-//       }
-//     }
-//     for (const ind of election.independents || []) {
-//       if (ind?._id) candidateMap.set(String(ind._id), { name: ind.name, party: 'Independent', position: ind.post });
-//     }
-
-//     const totalsByPosition = {};
-//     for (const row of agg) {
-//       const pos = row._id.position;
-//       totalsByPosition[pos] = (totalsByPosition[pos] || 0) + row.votes;
-//     }
-
-//     const results = agg.map(row => {
-//       const { candidateId, position } = row._id;
-//       const meta = candidateMap.get(String(candidateId)) || { name: 'Unknown', party: '', position };
-//       const total = totalsByPosition[position] || 0;
-//       const pct = total ? (row.votes / total) * 100 : 0;
-//       return {
-//         candidateId: String(candidateId),
-//         position,
-//         name: meta.name,
-//         party: meta.party,
-//         votes: row.votes,
-//         percentage: +pct.toFixed(2),
-//       };
-//     });
-
-//     return res.json({ electionId, results });
-//   } catch (err) {
-//     console.error('Get results error:', err);
-//     return res.status(500).json({ message: 'Server error' });
-//   }
-// };
-
 /** GET /api/vote/results?electionId=... -> tallies by position (confirmed only), includes 0-vote candidates */
 const getResults = async (req, res) => {
   try {
@@ -332,4 +267,3 @@ module.exports = {
   getResults,
   deleteMyVotesForElection,
 };
-
