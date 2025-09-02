@@ -351,6 +351,7 @@ const AdminDashboard = () => {
       case 'create-election': navigate('/create-election'); break;
       case 'election-settings': navigate('/settings'); break;
       case 'candidates': navigate('/candidates'); break;
+      case 'create-post': navigate('/create-post'); break;
 
       default: console.warn('No handler for:', actionType);
     }
@@ -450,6 +451,9 @@ const AdminDashboard = () => {
             </button>
             <button className="menu-item" onClick={() => handleAction('election-settings')}>
               <span className="mi-icon">📈</span><span className="mi-label">Voting Analytics</span>
+            </button>
+            <button className="menu-item" onClick={() => handleAction('create-post')}>
+              <span className="mi-icon">➕</span><span className="mi-label">Create Post</span>
             </button>
             <button className="menu-item" onClick={() => handleAction('view-posts')}>
               <span className="mi-icon">📝</span><span className="mi-label">Posts</span>
