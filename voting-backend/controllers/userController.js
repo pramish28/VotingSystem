@@ -733,6 +733,71 @@ exports.updateCandidate = async (req, res) => {
   }
 };
 
+//for deleting verified students/users
+exports.deleteVerifiedUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedUser = await User.findByIdAndDelete(id);
+
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+        // ✅ Log activity
+    const activity = new Activity({
+      user: "Admin", // later can be req.user.name if authentication is added
+      type: "student_deleted",
+      message: `Deleted student ${deletedUser.name} (${deletedUser.email})`,
+    });
+    await activity.save();
+
+    res.json({ message: "Verified student deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting verified student:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//Update a student by Id
+exports.updateStudentById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Find the student and update with new data
+    const updatedStudent = await User.findByIdAndUpdate(
+      id,
+      { $set: req.body }, // takes all fields sent in body
+      { new: true, runValidators: true } // returns updated doc, validates schema
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+        // ✅ Log activity
+    const activity = new Activity({
+      user: "Admin",
+      type: "student_updated",
+      message: `Updated student ${updatedStudent.name} (${updatedStudent.email})`,
+    });
+    await activity.save();
+
+    res.json({ message: "Student updated successfully", student: updatedStudent });
+  } catch (error) {
+    console.error("Error updating student:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//Get all activities (latest first)
+exports.getActivities = async (req, res) => {
+  try {
+    const activities = await Activity.find().sort({ timestamp: -1 }); // newest first
+    res.json(activities);
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    res.status(500).json({ message: "Server error"});
+}
+};
 // Assign a NEW candidate into an EMPTY slot (party or independent)
 exports.assignCandidate = async (req, res) => {
   try {

@@ -31,6 +31,8 @@ import ElectionForm from "./components/ElectionForm";
 import ProbabilityPage from "./pages/ProbabilityPage";
 import CandidatesList from "./components/Candidates";
 import UpdateCandidate from "./pages/UpdateCandidate";
+import DeleteStudent from "./components/DeleteStudent";
+import UpdateStudent from "./components/UpdateStudent";
 
 // Progressive guard: if user exists, don't block on loading.
 const ProtectedRoute = ({ children, allowedRole }) => {
@@ -61,8 +63,12 @@ function App() {
           {/* Public */}
           <Route path="/settings" element={<Settings />} />
           <Route path="/delete-candidate" element={<DeleteCandidate />} />
+          <Route path="/delete-student" element={<DeleteStudent />} />
+          <Route path="/update-student" element={<UpdateStudent />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/view-posts"element={<AllPostsPage />} />
 
           {/* Results are public and on /result */}
           <Route path="/result" element={<ResultPage />} />

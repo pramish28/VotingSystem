@@ -277,16 +277,11 @@ const AdminDashboard = () => {
     totalVotes: 0,
   });
 
+  const [recentActivities,setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Recent activity (preserved, now shown)
-  const [recentActivities] = useState([
-    { id: 1, type: 'verified', message: 'New student verification approved - John Doe', time: '2 min ago' },
-    { id: 2, type: 'pending', message: 'Election post submitted for approval', time: '15 min ago' },
-    { id: 3, type: 'election', message: 'New election "Student Council 2025" created', time: '1 hour ago' },
-    { id: 4, type: 'vote', message: 'Voting period ended for "Class Representative"', time: '3 hours ago' }
-  ]);
+  
 
   // === LOGOUT (preserved) ===
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -327,19 +322,32 @@ const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardStats();
-    const interval = setInterval(fetchDashboardStats, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  //fetching recent activities
+    const fetchRecentActivities = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/users/activities");
+      if (!res.ok) throw new Error("Failed to fetch activities");
+      const data = await res.json();
+      setRecentActivities(data);
+    } catch (err) {
+      console.error("Error fetching activities:", err);
+    }
+};
 
+ useEffect(() => {
+    fetchDashboardStats();
+    fetchRecentActivities();
+    const interval = setInterval(()=>{fetchDashboardStats();fetchRecentActivities();}, 30000);
+    return () => clearInterval(interval);
+},[]);
   // === NAV (preserved targets) ===
   const handleAction = (actionType) => {
     switch (actionType) {
       case 'view-users': navigate('/verified-users'); break;
+      case 'view-dashboard': navigate('/admin-dashboard'); break;
       case 'approve-students': navigate('/approve-students'); break;
       case 'approve-posts': navigate('/approve-posts'); break;
-      case 'manage-posts': navigate('/manage-posts'); break;
+      case 'view-posts': navigate('/view-posts'); break;
       case 'create-election': navigate('/create-election'); break;
       case 'election-settings': navigate('/settings'); break;
       case 'candidates': navigate('/candidates'); break;
@@ -425,7 +433,7 @@ const AdminDashboard = () => {
         {/* === SIDEBAR (Optional enhancement) === */}
         <aside className="sidebar">
           <nav className="menu">
-            <button className="menu-item active" onClick={() => navigate('/admin')}>
+            <button className="menu-item active" onClick={() => handleAction('view-dashboard')}>
               <span className="mi-icon">🏠</span><span className="mi-label">Dashboard</span>
             </button>
             <button className="menu-item" onClick={() => handleAction('view-users')}>
@@ -443,7 +451,7 @@ const AdminDashboard = () => {
             <button className="menu-item" onClick={() => handleAction('election-settings')}>
               <span className="mi-icon">📈</span><span className="mi-label">Voting Analytics</span>
             </button>
-            <button className="menu-item" onClick={() => handleAction('manage-posts')}>
+            <button className="menu-item" onClick={() => handleAction('view-posts')}>
               <span className="mi-icon">📝</span><span className="mi-label">Posts</span>
             </button>
             <button className="menu-item" onClick={() => handleAction('election-settings')}>
@@ -523,23 +531,28 @@ const AdminDashboard = () => {
           </section>
 
           {/* ===== RECENT ACTIVITIES ===== */}
-          <section className="panel recent-panel">
-            <h2 className="panel-title">Recent Activities</h2>
-            <div className="activity-list">
-              {recentActivities.map((a) => (
-                <div key={a.id} className={`activity-item ${a.type}`}>
-                  <div className="activity-icon">
-                    {a.type === 'verified' && '✅'}
-                    {a.type === 'pending' && '⏳'}
-                    {a.type === 'election' && '🗳️'}
-                    {a.type === 'vote' && '📮'}
-                  </div>
-                  <div className="activity-text">{a.message}</div>
-                  <div className="activity-time">{a.time}</div>
-                </div>
-              ))}
-            </div>
-          </section>
+                <section className="panel recent-panel">
+              <h2 className="panel-title">Recent Activities</h2>
+              {recentActivities.length === 0 ? (
+              <p>No recent activities yet.</p>
+              ) : (
+              recentActivities.slice(0, 5).map((a) => (
+              <div key={a._id} className={`activity-item ${a.action}`}>
+              <div className="activity-icon">
+                {a.action === "update" && "✏"}
+                {a.action === "delete" && "🗑"}
+              </div>
+              <div className="activity-text">
+                <strong>{a.user}</strong> {a.message}
+              </div>
+              <div className="activity-time">
+                {new Date(a.timestamp).toLocaleString()}
+              </div>
+              </div>
+              ))
+              )}
+              </section>
+         
 
           {/* ===== CHARTS & ANALYTICS (SVG, animated) ===== */}
           <section className="panel analytics-panel">

@@ -4,9 +4,13 @@ const userController = require('../controllers/userController');
 const nodemailer=require('nodemailer');
 const User = require('../models/User');
 
+const activityController=require('../controllers/userController');
+
 router.get('/verified', userController.getVerifiedUsers);
 router.get('/stats', userController.getUserStats);
 router.get('/candidates', userController.getAllCandidates); 
+
+router.get('/activities', activityController.getActivities);
 
 router.get('/pending-students',async(req,res)=>{
     try{
@@ -16,6 +20,8 @@ router.get('/pending-students',async(req,res)=>{
         res.status(500).json({ error: 'Server error'});    }
 });
 
+router.delete('/verified/:id', userController.deleteVerifiedUser);
+router.put('/:id', userController.updateStudentById);
 
 //route to approve students
 router.post('/approve-student', async (req, res) => {
