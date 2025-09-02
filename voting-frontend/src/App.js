@@ -18,6 +18,7 @@ import ElectionNews from "./pages/ElectionNews";
 import ProfilePage from "./pages/ProfilePage";
 import DeleteCandidate from "./components/DeleteCandidate";
 import "./App.css";
+import DeleteElection from "./pages/DeleteElection";
 
 
 import VerifiedUsers from "./components/VerifiedUsers";
@@ -121,6 +122,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+                  <Route
+          path="/delete-election"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <DeleteElection />
+            </ProtectedRoute>
+          }
+        />
           <Route
             path="/create-election"
             element={

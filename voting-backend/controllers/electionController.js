@@ -4,6 +4,7 @@ const Notification = require("../models/Notification");
 const User = require("../models/User");
 const Vote = require("../models/Vote");
 const Post = require("../models/Post");
+const mongoose = require('mongoose'); 
 
 // ----------------- helpers -----------------
 async function getCurrentVoterId(req) {
@@ -835,6 +836,49 @@ const getCurrentElectionProbability = async (_req, res) => {
   }
 };
 
+const deleteElectionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid election id" });
+    }
+
+    const election = await Election.findById(id);
+    if (!election) return res.status(404).json({ message: "Election not found" });
+
+    // delete votes for this election
+    const votesResult = await Vote.deleteMany({ electionId: election._id });
+
+    // optional: clean up legacy top-level Candidate docs (best-effort)
+    let candidateDocsRemoved = 0;
+    try {
+      const Candidate = require('../models/Candidate');
+      if (Candidate?.deleteMany) {
+        const r = await Candidate.deleteMany({ electionId: election._id });
+        candidateDocsRemoved = r?.deletedCount || 0;
+      }
+    } catch (_) {
+      // ignore if Candidate model isn't used
+    }
+
+    await Election.findByIdAndDelete(election._id);
+
+    return res.json({
+      message: "Election deleted",
+      electionId: String(election._id),
+      votesRemoved: votesResult?.deletedCount || 0,
+      candidateDocsRemoved
+    });
+  } catch (err) {
+    console.error("deleteElectionById error:", err);
+    return res.status(500).json({ message: "Failed to delete election", error: err.message });
+  }
+};
+
+
+
+
 module.exports = {
   getCandidates,
   getElectionNews,
@@ -850,4 +894,5 @@ module.exports = {
   // NEW:
   getElectionProbabilityById,
   getCurrentElectionProbability,
+  deleteElectionById,
 };
