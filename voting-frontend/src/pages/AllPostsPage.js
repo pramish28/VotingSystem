@@ -8,18 +8,18 @@
 //   const [loading, setLoading] = useState(true);
 
 //   useEffect(() => {
-//     const fetchAllApprovedPosts = async () => {
+//     let alive = true;
+//     (async () => {
 //       try {
 //         const res = await api.get('/api/post');
-//         setAllPosts(res.data || []);
+//         if (alive) setAllPosts(res.data || []);
 //       } catch (err) {
 //         console.error('Failed to load all posts:', err);
 //       } finally {
-//         setLoading(false);
+//         if (alive) setLoading(false);
 //       }
-//     };
-
-//     fetchAllApprovedPosts();
+//     })();
+//     return () => { alive = false; };
 //   }, []);
 
 //   if (loading) {
@@ -41,7 +41,7 @@
 //         </h1>
 //         <p className="subtitle">Discover the latest approved content from our college election community.</p>
 //       </div>
-      
+
 //       {allPosts.length === 0 ? (
 //         <div className="empty-state">
 //           <div className="empty-icon">📝</div>
@@ -50,11 +50,8 @@
 //         </div>
 //       ) : (
 //         <div className="posts-grid">
-//           {allPosts.map((post, index) => (
-//             <div key={post._id} className="post-wrapper" style={{'--delay': `${index * 0.1}s`}}>
-//               {/* Approved posts are interactive */}
-//               <Post post={post} interactive />
-//             </div>
+//           {allPosts.map((p) => (
+//             <Post key={p._id} post={p} />
 //           ))}
 //         </div>
 //       )}
@@ -65,13 +62,24 @@
 // export default AllPostsPage;
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { useAuth } from '../AuthContext';
 import Post from '../components/Post';
 import './AllPostsPage.css';
 
 const AllPostsPage = () => {
   const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const backPath = user?.role === 'admin'
+    ? '/admin-dashboard'
+    : user
+    ? '/student-dashboard'
+    : '/login';
 
   useEffect(() => {
     let alive = true;
@@ -91,6 +99,16 @@ const AllPostsPage = () => {
   if (loading) {
     return (
       <div className="posts-container">
+        {/* Back button still visible while loading */}
+        <button
+          type="button"
+          className="back-floating-btn"
+          onClick={() => navigate(backPath)}
+          aria-label="Back to Dashboard"
+        >
+          ← Back to Dashboard
+        </button>
+
         <div className="loading-spinner">
           <div className="spinner"></div>
           <p>Loading amazing posts...</p>
@@ -101,6 +119,16 @@ const AllPostsPage = () => {
 
   return (
     <div className="posts-container">
+      {/* Top-left back button */}
+      <button
+        type="button"
+        className="back-floating-btn"
+        onClick={() => navigate(backPath)}
+        aria-label="Back to Dashboard"
+      >
+        ← Back to Dashboard
+      </button>
+
       <div className="hero-section">
         <h1 className="main-title">
           <span className="title-gradient">Your </span> Posts
@@ -126,4 +154,3 @@ const AllPostsPage = () => {
 };
 
 export default AllPostsPage;
-

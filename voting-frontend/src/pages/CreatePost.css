@@ -148,3 +148,22 @@ input[type='file'] {
 .submit-button:hover {
   background-color: #0056b3;
 }
+
+/* Floating back button – fixed top-left with visible text */
+.back-floating-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1100;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #150ccb;      /* dark background so text is visible */
+  color: #fff;           /* ensure contrast */
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.back-floating-btn:hover {
+  background: #000;
+}

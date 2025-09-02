@@ -1,6 +1,7 @@
+// // voting-frontend/src/pages/CreatePost.js
 // import React, { useState } from 'react';
 // import './CreatePost.css';
-// import api from '../api'; 
+// import api from '../api';
 
 // const CreatePost = () => {
 //   const [postContent, setPostContent] = useState('');
@@ -11,21 +12,19 @@
 
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
+//     if (loading) return;
 //     setLoading(true);
 //     setSuccessMessage('');
-    
+
 //     const formData = new FormData();
 //     formData.append('content', postContent);
 //     formData.append('category', selectedCategory);
-//     if (selectedFile) {
-//       formData.append('image', selectedFile); // Must match backend's `upload.single('image')`
-//     }
+//     if (selectedFile) formData.append('image', selectedFile); // must match upload.single('image')
 
 //     try {
 //       const res = await api.post('/api/post', formData, {
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//         },
+//         // DO NOT set Content-Type; browser will add the proper multipart boundary
+//         timeout: 30000, // safety timeout so UI always recovers
 //       });
 
 //       setSuccessMessage(res.data.message || 'Post submitted!');
@@ -33,8 +32,9 @@
 //       setSelectedCategory('');
 //       setSelectedFile(null);
 //     } catch (error) {
+//       const msg = error?.response?.data?.error || error.message || 'Failed to submit post.';
 //       console.error('Error submitting post:', error);
-//       alert('Failed to submit post. Please try again.');
+//       alert(msg);
 //     } finally {
 //       setLoading(false);
 //     }
@@ -43,7 +43,7 @@
 //   return (
 //     <>
 //       <div className="background"></div>
-      
+
 //       <div className="election-hub-container">
 //         <div className="header">
 //           <div className="header-content">
@@ -58,7 +58,6 @@
 //           </div>
 //         </div>
 
-//         {/* ✅ ✅ Use actual <form> element here */}
 //         <form className="form-container" onSubmit={handleSubmit}>
 //           <div className="form-header">
 //             <span className="edit-icon">✏️</span>
@@ -93,16 +92,16 @@
 //           </div>
 
 //           <div className="form-group">
-//             <div className="form-label">Attach Files</div>
+//             <div className="form-label">Attach Image</div>
 //             <div className="file-upload-area">
 //               <input
 //                 type="file"
-//                 onChange={(e) => setSelectedFile(e.target.files[0])}
-//                 accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+//                 onChange={(e) => setSelectedFile(e.target.files[0] || null)}
+//                 accept=".jpg,.jpeg,.png"  // backend only allows images; remove .pdf/.doc to avoid server error
 //               />
 //               <div className="file-upload-text">
 //                 <span className="attachment-icon">📎</span>
-//                 Choose images, PDFs, or documents
+//                 Choose JPG or PNG (max 5MB)
 //               </div>
 //             </div>
 //           </div>
@@ -122,18 +121,28 @@
 
 // export default CreatePost;
 
-
 // voting-frontend/src/pages/CreatePost.js
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './CreatePost.css';
 import api from '../api';
+import { useAuth } from '../AuthContext';
 
 const CreatePost = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [postContent, setPostContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  const backPath = user?.role === 'admin'
+    ? '/admin-dashboard'
+    : user
+    ? '/student-dashboard'
+    : '/login';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -144,18 +153,17 @@ const CreatePost = () => {
     const formData = new FormData();
     formData.append('content', postContent);
     formData.append('category', selectedCategory);
-    if (selectedFile) formData.append('image', selectedFile); // must match upload.single('image')
+    if (selectedFile) formData.append('image', selectedFile);
 
     try {
-      const res = await api.post('/api/post', formData, {
-        // DO NOT set Content-Type; browser will add the proper multipart boundary
-        timeout: 30000, // safety timeout so UI always recovers
-      });
-
+      const res = await api.post('/api/post', formData, { timeout: 30000 });
       setSuccessMessage(res.data.message || 'Post submitted!');
       setPostContent('');
       setSelectedCategory('');
       setSelectedFile(null);
+
+      // Redirect to AllPostsPage
+      navigate('/view-posts', { replace: true });
     } catch (error) {
       const msg = error?.response?.data?.error || error.message || 'Failed to submit post.';
       console.error('Error submitting post:', error);
@@ -167,6 +175,16 @@ const CreatePost = () => {
 
   return (
     <>
+      {/* Floating Back button fixed at top-left */}
+      <button
+        type="button"
+        className="back-floating-btn"
+        onClick={() => navigate(backPath)}
+        aria-label="Back to Dashboard"
+      >
+        ← Back to Dashboard
+      </button>
+
       <div className="background"></div>
 
       <div className="election-hub-container">
@@ -178,7 +196,8 @@ const CreatePost = () => {
               <div className="verified-badge">✓</div>
             </div>
             <p className="tagline">
-              Share your ideas and <span className="highlight-green">campaign updates</span> with the <span className="highlight-purple">college community</span>
+              Share your ideas and <span className="highlight-green">campaign updates</span> with the{' '}
+              <span className="highlight-purple">college community</span>
             </p>
           </div>
         </div>
@@ -222,7 +241,7 @@ const CreatePost = () => {
               <input
                 type="file"
                 onChange={(e) => setSelectedFile(e.target.files[0] || null)}
-                accept=".jpg,.jpeg,.png"  // backend only allows images; remove .pdf/.doc to avoid server error
+                accept=".jpg,.jpeg,.png"
               />
               <div className="file-upload-text">
                 <span className="attachment-icon">📎</span>
