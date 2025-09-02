@@ -264,6 +264,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './AdminDashboard.css';
 import { useNavigate } from 'react-router-dom';
+import tuLogo from "../Image/tu-logo.png";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -407,7 +408,7 @@ const AdminDashboard = () => {
       {/* ===== TOP NAV BAR ===== */}
       <header className="topbar">
         <div className="topbar-left">
-          <img src="/assets/tu-logo.png" alt="Tribhuwan University" className="tu-logo" />
+          <img src={tuLogo} alt="Tribhuwan University" className="tu-logo" />
           <div className="title">
             <h1>Tribhuwan University</h1>
             <span>College Election Management System</span>

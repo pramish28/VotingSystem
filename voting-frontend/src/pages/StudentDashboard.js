@@ -247,7 +247,7 @@ import {
   FaUser, FaVoteYea, FaChartBar, FaBell, FaPenAlt,
   FaClipboardList, FaHourglassHalf, FaCheckCircle, FaSignOutAlt
 } from 'react-icons/fa';
-
+ import tuLogo from "../Image/tu-logo.png";
 
 
 const StudentDashboard = () => {
@@ -339,7 +339,7 @@ const StudentDashboard = () => {
       <header className="tu-topbar">
         <div className="brand-left">
           <div className="brand-logo">
-           <img src='../../assets/tu-logo.png' alt="P" />
+           <img src={tuLogo} alt="P" />
           </div>
           <div className="brand-text">
             <div className="brand-title">Tribhuvan University</div>
