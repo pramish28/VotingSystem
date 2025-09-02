@@ -16,3 +16,21 @@
 .dap-content { margin: 10px 0; white-space: pre-wrap; }
 .dap-image img { width: 100%; max-height: 360px; object-fit: cover; border-radius: 10px; }
 .dap-stats { display: flex; gap: 16px; color: #444; font-size: 14px; margin-top: 6px; }
+
+/* Non-sticky top-left back button */
+.back-top-btn {
+  position: static;            /* scrolls away with content */
+  display: inline-block;
+  margin: 12px 0 8px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #10edcf;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.back-top-btn:hover {
+  background: #000;
+}

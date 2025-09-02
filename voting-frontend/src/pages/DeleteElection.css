@@ -17,3 +17,22 @@
   border-radius: 8px; cursor: pointer;
 }
 .danger-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* Non-sticky top-left back button */
+.back-top-btn {
+  position: static;           /* scrolls with the page */
+  display: inline-block;
+  margin: 12px 0 8px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0dd38a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.back-top-btn:hover {
+  background: #000;
+}
+

@@ -17,3 +17,21 @@
 .actions { display: flex; justify-content: flex-end; }
 .btn { background: #2563eb; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Top-left back button that is NOT sticky (scrolls away with page) */
+.back-top-btn {
+  position: static;          /* not fixed; will scroll out of view */
+  margin: 12px 0 8px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0ce2a1;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.back-top-btn:hover {
+  background: #000;
+}
+
