@@ -6,6 +6,8 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
 
+import Settings from "./pages/Settings";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -14,7 +16,9 @@ import VotingPage from "./pages/VotingPage";
 import ResultPage from "./pages/ResultPage";
 import ElectionNews from "./pages/ElectionNews";
 import ProfilePage from "./pages/ProfilePage";
+import DeleteCandidate from "./components/DeleteCandidate";
 import "./App.css";
+
 
 import VerifiedUsers from "./components/VerifiedUsers";
 import ApproveStudents from "./components/ApproveStudents";
@@ -25,6 +29,8 @@ import PendingPostsPage from "./pages/PendingPostsPage";
 import ApprovedPostsPage from "./pages/ApprovedPostsPage";
 import ElectionForm from "./components/ElectionForm";
 import ProbabilityPage from "./pages/ProbabilityPage";
+import CandidatesList from "./components/Candidates";
+import UpdateCandidate from "./pages/UpdateCandidate";
 
 // Progressive guard: if user exists, don't block on loading.
 const ProtectedRoute = ({ children, allowedRole }) => {
@@ -53,6 +59,8 @@ function App() {
       <Router>
         <Routes>
           {/* Public */}
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/delete-candidate" element={<DeleteCandidate />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
@@ -64,6 +72,8 @@ function App() {
           <Route path="/news" element={<ElectionNews />} />
           <Route path="/create-post" element={<CreatePost />} />
 
+          <Route path="/candidates" element={<CandidatesList />} />
+
           {/* Admin-only */}
           <Route
             path="/verified-users"
@@ -73,6 +83,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+           path="/update-candidate" 
+           element={
+            <ProtectedRoute allowedRole="admin">
+           <UpdateCandidate />
+            </ProtectedRoute>
+           } 
+           />
           <Route
             path="/approve-students"
             element={

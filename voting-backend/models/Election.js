@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const candidateSchema = new mongoose.Schema({
+  _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
   name: { type: String, default: '' },
   photo: { type: String, default: '' },
   // 👇 NEW: link to verified student account (optional for legacy elections)
@@ -19,6 +20,7 @@ const partySectionSchema = new mongoose.Schema({
 });
 
 const independentCandidateSchema = new mongoose.Schema({
+  _id: {type: mongoose.Schema.Types.ObjectId, auto:true},
   post: { type: String, default: '' },
   name: { type: String, default: '' },
   photo: { type: String, default: '' },

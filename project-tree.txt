@@ -20,6 +20,7 @@
   |-- routes
     |-- auth.js
     |-- dashboardRoutes.js
+    |-- CandidateRoutes.js
     |-- election.js
     |-- post.js
     |-- User.js
@@ -33,31 +34,60 @@
 |-- voting-frontend
   |-- node_modules
   |-- public
+  |-- assets
   |-- src
     |-- api.js
     |-- App.js
+    |-- App.css
     |-- AuthContext.js
+    |-- socket.js
     |-- components
       |-- ApproveStudents.js
+      |-- ApproveStudents.css
+      |-- Candidates.js
+      |-- Candidates.css
+      |-- DeleteCandidate.js
+      |-- DeleteCandidate.css
       |-- ElectionForm.js
+      |-- ElectionForm.css
       |-- Post.js
+      |-- Post.css
       |-- ProfileCard.js
+      |-- ProfileCard.css
       |-- VerifiedUsers.js
+      |-- VerifiedUsers.css
     |-- index.js
+    |-- index.css
     |-- lib
       |-- chart.js
     |-- pages
       |-- AdminDashboard.js
+      |-- AdminDashboard.css
       |-- AllPostsPage.js
+      |-- AllPostsPage.css
       |-- ApprovedPostsPage.js
+      |-- ApprovedPostsPage.css
       |-- ApprovePosts.js
+      |-- ApprovePosts.css
       |-- CreatePost.js
+      |-- CreatePost.css
       |-- ElectionNews.js
+      |-- ElectionNews.css
       |-- Login.js
+      |-- Login.css
+      |-- PendingPostsPage.js
       |-- PendingPostsPage.js
       |-- ProbabilityPage.js
+      |-- ProbabilityPage.css
       |-- ProfilePage.js
+      |-- ProfilePage.css
       |-- Register.js
+      |-- Register.css
       |-- ResultPage.js
+      |-- ResultPage.css
       |-- StudentDashboard.js
+      |-- StudentDashboard.css
+      |-- Settings.js
+      |-- Settings.css
       |-- VotingPage.js
+      |-- VotingPage.css

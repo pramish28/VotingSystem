@@ -6,6 +6,7 @@ const User = require('../models/User');
 
 router.get('/verified', userController.getVerifiedUsers);
 router.get('/stats', userController.getUserStats);
+router.get('/candidates', userController.getAllCandidates); 
 
 router.get('/pending-students',async(req,res)=>{
     try{

@@ -14,6 +14,8 @@ const postRoutes = require('./routes/post');
 const electionRoutes = require('./routes/election');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 
+const candidateRoutes = require('./routes/candidateRoutes');
+
 // 👇 BOTH routers exist in your codebase
 const userRoutesPlural = require('./routes/userRoutes'); // mounts at /api/users (approve/reject etc.)
 const userRoutesSingular = require('./routes/User');     // mounts at /api/user  (profile etc.)
@@ -57,6 +59,7 @@ app.use('/api/vote', voteRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/election', electionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/candidates', candidateRoutes);
 
 // ---- Socket.IO setup ----
 const server = http.createServer(app);
