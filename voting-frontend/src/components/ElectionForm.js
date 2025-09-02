@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './ElectionForm.css';
 import api, { createElection } from '../api';
 
@@ -17,10 +18,30 @@ const posts = [
   { label: "कोषाध्यक्ष", key: "treasurer" }
 ];
 
+// --- local date helpers to avoid UTC off-by-one ---
+function ymdLocal(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+function parseLocalYmd(ymd) {
+  // new Date(y, m-1, d) is local midnight (no timezone shift)
+  if (!ymd) return null;
+  const [y, m, d] = ymd.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
 export default function ElectionForm() {
+  const navigate = useNavigate();
+
   const [electionTitle, setElectionTitle] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  // today in LOCAL time (disables past dates reliably)
+  const todayStr = useMemo(() => ymdLocal(new Date()), []);
 
   // verified students for dropdown
   const [verifiedUsers, setVerifiedUsers] = useState([]);
@@ -36,7 +57,7 @@ export default function ElectionForm() {
   const chosenParties = partySections.map(p => p.partyName).filter(Boolean);
   const chosenSamanupatik = samanupatikParties.filter(Boolean);
 
-  // ---------- load verified students (NO voterId in labels) ----------
+  // ---------- load verified students ----------
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -217,98 +238,117 @@ export default function ElectionForm() {
   function optionsForSlot(currentSelectedId = "") {
     return verifiedUsers.filter(u => !chosenUserIds.has(u._id) || u._id === currentSelectedId);
   }
-async function handleSubmit(e) {
-  e.preventDefault();
-  if (isSubmitting) return;
-  if (!electionTitle || !startDate || !endDate) {
-    alert("निर्वाचन शीर्षक, सुरू मिति, र अन्त्य मिति अनिवार्य छन्!");
-    return;
-  }
 
-  try {
-    setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append('electionTitle', electionTitle);
-    formData.append('startDate', startDate);
-    formData.append('endDate', endDate);
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (isSubmitting) return;
+    if (!electionTitle || !startDate || !endDate) {
+      alert("निर्वाचन शीर्षक, सुरू मिति, र अन्त्य मिति अनिवार्य छन्!");
+      return;
+    }
 
-    // ✅ Include candidateUserId everywhere; keep name too
-    const sanitizedPartySections = partySections.map(section => ({
-      partyName: section.partyName || "",
-      candidates: {
-        president: {
-          name: section.candidates.president.name || "",
-          candidateUserId: section.candidates.president.selectedUserId || ""
+    // ✅ extra validation against manual input
+    const start = parseLocalYmd(startDate);
+    const end = parseLocalYmd(endDate);
+    const today = parseLocalYmd(todayStr);
+
+    if (!start || !end) {
+      alert("मिति गलत भयो। पुनः प्रयास गर्नुहोस्।");
+      return;
+    }
+    if (start < today) {
+      alert("सुरू मिति आज भन्दा पहिला हुन सक्दैन!");
+      return;
+    }
+    if (end < start) {
+      alert("अन्त्य मिति सुरू मितिभन्दा अगाडि हुन सक्दैन!");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('electionTitle', electionTitle);
+      formData.append('startDate', startDate);
+      formData.append('endDate', endDate);
+
+      // include candidateUserId + name (unchanged)
+      const sanitizedPartySections = partySections.map(section => ({
+        partyName: section.partyName || "",
+        candidates: {
+          president: {
+            name: section.candidates.president.name || "",
+            candidateUserId: section.candidates.president.selectedUserId || ""
+          },
+          vicePresident: {
+            name: section.candidates.vicePresident.name || "",
+            candidateUserId: section.candidates.vicePresident.selectedUserId || ""
+          },
+          secretary: {
+            name: section.candidates.secretary.name || "",
+            candidateUserId: section.candidates.secretary.selectedUserId || ""
+          },
+          treasurer: {
+            name: section.candidates.treasurer.name || "",
+            candidateUserId: section.candidates.treasurer.selectedUserId || ""
+          },
+          members: (section.candidates.members || []).map(m => ({
+            name: m.name || "",
+            candidateUserId: m.selectedUserId || ""
+          })),
         },
-        vicePresident: {
-          name: section.candidates.vicePresident.name || "",
-          candidateUserId: section.candidates.vicePresident.selectedUserId || ""
-        },
-        secretary: {
-          name: section.candidates.secretary.name || "",
-          candidateUserId: section.candidates.secretary.selectedUserId || ""
-        },
-        treasurer: {
-          name: section.candidates.treasurer.name || "",
-          candidateUserId: section.candidates.treasurer.selectedUserId || ""
-        },
-        members: (section.candidates.members || []).map(m => ({
-          name: m.name || "",
-          candidateUserId: m.selectedUserId || ""
-        })),
-      },
-    }));
-    formData.append('partySections', JSON.stringify(sanitizedPartySections));
+      }));
+      formData.append('partySections', JSON.stringify(sanitizedPartySections));
 
-    // ✅ Independents: include candidateUserId too
-    const sanitizedIndependents = independents.map(cand => ({
-      post: cand.post || "",
-      name: cand.name || "",
-      candidateUserId: cand.selectedUserId || ""
-    }));
-    formData.append('independents', JSON.stringify(sanitizedIndependents));
+      const sanitizedIndependents = independents.map(cand => ({
+        post: cand.post || "",
+        name: cand.name || "",
+        candidateUserId: cand.selectedUserId || ""
+      }));
+      formData.append('independents', JSON.stringify(sanitizedIndependents));
 
-    formData.append('samanupatikParties', JSON.stringify(samanupatikParties.filter(Boolean)));
+      formData.append('samanupatikParties', JSON.stringify(samanupatikParties.filter(Boolean)));
 
-    // FILES (unchanged)
-    partySections.forEach((section, sIdx) => {
-      Object.keys(section.candidates).forEach((key) => {
-        if (key !== 'members') {
-          const f = section.candidates[key].photo;
-          if (f) formData.append(`partySections[${sIdx}][candidates][${key}][photo]`, f);
-        } else {
-          (section.candidates.members || []).forEach((member, mIdx) => {
-            if (member.photo) {
-              formData.append(`partySections[${sIdx}][candidates][members][${mIdx}][photo]`, member.photo);
-            }
-          });
-        }
+      // files unchanged
+      partySections.forEach((section, sIdx) => {
+        Object.keys(section.candidates).forEach((key) => {
+          if (key !== 'members') {
+            const f = section.candidates[key].photo;
+            if (f) formData.append(`partySections[${sIdx}][candidates][${key}][photo]`, f);
+          } else {
+            (section.candidates.members || []).forEach((member, mIdx) => {
+              if (member.photo) {
+                formData.append(`partySections[${sIdx}][candidates][members][${mIdx}][photo]`, member.photo);
+              }
+            });
+          }
+        });
       });
-    });
 
-    independents.forEach((cand, i) => {
-      if (cand.photo) formData.append(`independents[${i}][photo]`, cand.photo);
-    });
+      independents.forEach((cand, i) => {
+        if (cand.photo) formData.append(`independents[${i}][photo]`, cand.photo);
+      });
 
-    const response = await createElection(formData);
-    console.log('Server response:', response);
+      const response = await createElection(formData);
+      console.log('Server response:', response);
 
-    setElectionTitle("");
-    setStartDate("");
-    setEndDate("");
-    setPartySections([]);
-    setIndependents([]);
-    setSamanupatikParties([]);
-    alert("निर्वाचन सिर्जना सफल भयो!");
-  } catch (error) {
-    console.error('Submission error:', error);
-    const msg = error.response?.data?.message || error.message || "Unknown error";
-    alert("निर्वाचन सिर्जना गर्दा त्रुटि: " + msg);
-  } finally {
-    setIsSubmitting(false);
+      setElectionTitle("");
+      setStartDate("");
+      setEndDate("");
+      setPartySections([]);
+      setIndependents([]);
+      setSamanupatikParties([]);
+
+      alert("निर्वाचन सिर्जना सफल भयो!");
+      navigate('/admin-dashboard', { replace: true });
+    } catch (error) {
+      console.error('Submission error:', error);
+      const msg = error.response?.data?.message || error.message || "Unknown error";
+      alert("निर्वाचन सिर्जना गर्दा त्रुटि: " + msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
-}
-
 
   function getAvailableParties(index) {
     const chosenExceptCurrent = chosenParties.filter((_, i) => i !== index);
@@ -321,105 +361,88 @@ async function handleSubmit(e) {
   }
 
   return (
-    <form className="election-form" onSubmit={handleSubmit}>
-      <h2>त्रिभुवन विश्वविद्यालय कलेज निर्वाचन सिर्जना गर्नुहोस्</h2>
+    <div className="election-form-wrap">
+      <div className="header-section" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <button className="back-btn" onClick={() => navigate('/admin-dashboard')}>
+          ← Back to Dashboard
+        </button>
+      </div>
 
-      <label>निर्वाचन शीर्षक</label>
-      <input
-        type="text"
-        value={electionTitle}
-        onChange={e => setElectionTitle(e.target.value)}
-        placeholder="जस्तै: FSU Election 2081"
-        required
-      />
+      <form className="election-form" onSubmit={handleSubmit}>
+        <h2>त्रिभुवन विश्वविद्यालय कलेज निर्वाचन सिर्जना गर्नुहोस्</h2>
 
-      <label>सुरू मिति</label>
-      <input
-        type="date"
-        value={startDate}
-        onChange={e => setStartDate(e.target.value)}
-        required
-      />
+        <label>निर्वाचन शीर्षक</label>
+        <input
+          type="text"
+          value={electionTitle}
+          onChange={e => setElectionTitle(e.target.value)}
+          placeholder="जस्तै: FSU Election 2081"
+          required
+        />
 
-      <label>अन्त्य मिति</label>
-      <input
-        type="date"
-        value={endDate}
-        onChange={e => setEndDate(e.target.value)}
-        required
-      />
+        <label>सुरू मिति</label>
+        <input
+          type="date"
+          value={startDate}
+          min={todayStr}                // ✅ disable past dates
+          onChange={e => {
+            const v = e.target.value;
+            setStartDate(v);
+            // if end-date is set earlier than new start-date, bump it
+            if (endDate) {
+              const end = parseLocalYmd(endDate);
+              const start = parseLocalYmd(v);
+              if (end && start && end < start) setEndDate(v);
+            }
+          }}
+          required
+        />
 
-      {loadingUsers && <div className="info">Loading verified students…</div>}
-      {!loadingUsers && usersError && <div className="error">{usersError}</div>}
-      {!loadingUsers && !usersError && verifiedUsers.length === 0 && (
-        <div className="warning">No verified students found. Verify students first.</div>
-      )}
+        <label>अन्त्य मिति</label>
+        <input
+          type="date"
+          value={endDate}
+          min={startDate || todayStr}   // ✅ cannot be before start (or today if start empty)
+          onChange={e => setEndDate(e.target.value)}
+          required
+        />
 
-      <div className="party-sections">
-        <h3>पार्टीको उम्मेदवारहरू</h3>
+        {loadingUsers && <div className="info">Loading verified students…</div>}
+        {!loadingUsers && usersError && <div className="error">{usersError}</div>}
+        {!loadingUsers && !usersError && verifiedUsers.length === 0 && (
+          <div className="warning">No verified students found. Verify students first.</div>
+        )}
 
-        {partySections.map((section, i) => (
-          <div key={i} className="party-section">
-            <select
-              value={section.partyName}
-              onChange={e => changePartyName(i, e.target.value)}
-            >
-              <option value="">-- पार्टी छान्नुहोस् --</option>
-              {getAvailableParties(i).map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+        <div className="party-sections">
+          <h3>पार्टीको उम्मेदवारहरू</h3>
 
-            {section.partyName && (
-              <>
-                {posts.map(({ label, key }) => {
-                  const slot = section.candidates[key] || {};
-                  const opts = optionsForSlot(slot.selectedUserId);
-                  return (
-                    <div key={key} className="candidate-section">
-                      <label>{label}</label>
+          {partySections.map((section, i) => (
+            <div key={i} className="party-section">
+              <select
+                value={section.partyName}
+                onChange={e => changePartyName(i, e.target.value)}
+              >
+                <option value="">-- पार्टी छान्नुहोस् --</option>
+                {getAvailableParties(i).map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
 
-                      <select
-                        value={slot.selectedUserId || ""}
-                        onChange={(e) => selectCandidateUser(i, key, e.target.value)}
-                        disabled={verifiedUsers.length === 0}
-                      >
-                        <option value="">-- {label} का लागि विद्यार्थी छान्नुहोस् --</option>
-                        {opts.map(u => (
-                          <option key={u._id} value={u._id}>
-                            {asUserLabel(u)}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={e => changeCandidatePhoto(i, key, e.target.files[0])}
-                      />
-                      {slot.preview && (
-                        <img
-                          src={slot.preview}
-                          alt={`${label} preview`}
-                          className="candidate-photo"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-
-                <div className="members-section">
-                  <label>१२ जना सदस्यहरू</label>
-                  {section.candidates.members.map((member, idx) => {
-                    const opts = optionsForSlot(member.selectedUserId);
+              {section.partyName && (
+                <>
+                  {posts.map(({ label, key }) => {
+                    const slot = section.candidates[key] || {};
+                    const opts = optionsForSlot(slot.selectedUserId);
                     return (
-                      <div key={idx} className="member-section">
+                      <div key={key} className="candidate-section">
+                        <label>{label}</label>
+
                         <select
-                          value={member.selectedUserId || ""}
-                          onChange={(e) => selectCandidateUser(i, "members", e.target.value, idx)}
+                          value={slot.selectedUserId || ""}
+                          onChange={(e) => selectCandidateUser(i, key, e.target.value)}
                           disabled={verifiedUsers.length === 0}
                         >
-                          <option value="">-- सदस्य {idx + 1} छान्नुहोस् --</option>
+                          <option value="">-- {label} का लागि विद्यार्थी छान्नुहोस् --</option>
                           {opts.map(u => (
                             <option key={u._id} value={u._id}>
                               {asUserLabel(u)}
@@ -430,103 +453,139 @@ async function handleSubmit(e) {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={e => changeCandidatePhoto(i, "members", e.target.files[0], idx)}
+                          onChange={e => changeCandidatePhoto(i, key, e.target.files[0])}
                         />
-                        {member.preview && (
+                        {slot.preview && (
                           <img
-                            src={member.preview}
-                            alt={`सदस्य ${idx + 1} preview`}
+                            src={slot.preview}
+                            alt={`${label} preview`}
                             className="candidate-photo"
                           />
                         )}
                       </div>
                     );
                   })}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
 
-        <button type="button" onClick={addPartySection} className="add-button">
-          + अर्को पार्टी थप्नुहोस्
-        </button>
-      </div>
+                  <div className="members-section">
+                    <label>१२ जना सदस्यहरू</label>
+                    {section.candidates.members.map((member, idx) => {
+                      const opts = optionsForSlot(member.selectedUserId);
+                      return (
+                        <div key={idx} className="member-section">
+                          <select
+                            value={member.selectedUserId || ""}
+                            onChange={(e) => selectCandidateUser(i, "members", e.target.value, idx)}
+                            disabled={verifiedUsers.length === 0}
+                          >
+                            <option value="">-- सदस्य {idx + 1} छान्नुहोस् --</option>
+                            {opts.map(u => (
+                              <option key={u._id} value={u._id}>
+                                {asUserLabel(u)}
+                              </option>
+                            ))}
+                          </select>
 
-      <div className="independent-section">
-        <h3>स्वतन्त्र उम्मेदवारहरू</h3>
-        {independents.map((cand, idx) => {
-          const opts = optionsForSlot(cand.selectedUserId);
-          return (
-            <div key={idx} className="independent-candidate">
-              <label>पद</label>
-              <select
-                value={cand.post}
-                onChange={e => changeIndependentField(idx, "post", e.target.value)}
-              >
-                <option value="">-- पद छान्नुहोस् --</option>
-                {posts.map(({ label, key }) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-                <option value="members">सदस्य</option>
-              </select>
-
-              <select
-                value={cand.selectedUserId || ""}
-                onChange={(e) => selectIndependentUser(idx, e.target.value)}
-                disabled={verifiedUsers.length === 0}
-              >
-                <option value="">-- उम्मेदवार छान्नुहोस् --</option>
-                {opts.map(u => (
-                  <option key={u._id} value={u._id}>
-                    {asUserLabel(u)}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => changeIndependentPhoto(idx, e.target.files[0])}
-              />
-              {cand.preview && (
-                <img
-                  src={cand.preview}
-                  alt="स्वतन्त्र उम्मेदवार फोटो"
-                  className="candidate-photo"
-                />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={e => changeCandidatePhoto(i, "members", e.target.files[0], idx)}
+                          />
+                          {member.preview && (
+                            <img
+                              src={member.preview}
+                              alt={`सदस्य ${idx + 1} preview`}
+                              className="candidate-photo"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
-          );
-        })}
+          ))}
 
-        <button type="button" onClick={addIndependent} className="add-button">
-          + स्वतन्त्र उम्मेदवार थप्नुहोस्
+          <button type="button" onClick={addPartySection} className="add-button">
+            + अर्को पार्टी थप्नुहोस्
+          </button>
+        </div>
+
+        <div className="independent-section">
+          <h3>स्वतन्त्र उम्मेदवारहरू</h3>
+          {independents.map((cand, idx) => {
+            const opts = optionsForSlot(cand.selectedUserId);
+            return (
+              <div key={idx} className="independent-candidate">
+                <label>पद</label>
+                <select
+                  value={cand.post}
+                  onChange={e => changeIndependentField(idx, "post", e.target.value)}
+                >
+                  <option value="">-- पद छान्नुहोस् --</option>
+                  {posts.map(({ label, key }) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                  <option value="members">सदस्य</option>
+                </select>
+
+                <select
+                  value={cand.selectedUserId || ""}
+                  onChange={(e) => selectIndependentUser(idx, e.target.value)}
+                  disabled={verifiedUsers.length === 0}
+                >
+                  <option value="">-- उम्मेदवार छान्नुहोस् --</option>
+                  {opts.map(u => (
+                    <option key={u._id} value={u._id}>
+                      {asUserLabel(u)}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => changeIndependentPhoto(idx, e.target.files[0])}
+                />
+                {cand.preview && (
+                  <img
+                    src={cand.preview}
+                    alt="स्वतन्त्र उम्मेदवार फोटो"
+                    className="candidate-photo"
+                  />
+                )}
+              </div>
+            );
+          })}
+
+          <button type="button" onClick={addIndependent} className="add-button">
+            + स्वतन्त्र उम्मेदवार थप्नुहोस्
+          </button>
+        </div>
+
+        <div className="samanupatik-section">
+          <h3>समानुपातिक निर्वाचन (पार्टीको नाम चयन गर्नुहोस्)</h3>
+          {samanupatikParties.map((party, i) => (
+            <select
+              key={i}
+              value={party}
+              onChange={e => changeSamanupatikParty(i, e.target.value)}
+            >
+              <option value="">-- पार्टी छान्नुहोस् --</option>
+              {getAvailableSamanupatikParties(i).map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          ))}
+          <button type="button" onClick={addSamanupatikParty} className="add-button">
+            + पार्टी थप्नुहोस्
+          </button>
+        </div>
+
+        <button type="submit" className="submit-button" disabled={isSubmitting}>
+          {isSubmitting ? "Submitting..." : "निर्वाचन सिर्जना गर्नुहोस्"}
         </button>
-      </div>
-
-      <div className="samanupatik-section">
-        <h3>समानुपातिक निर्वाचन (पार्टीको नाम चयन गर्नुहोस्)</h3>
-        {samanupatikParties.map((party, i) => (
-          <select
-            key={i}
-            value={party}
-            onChange={e => changeSamanupatikParty(i, e.target.value)}
-          >
-            <option value="">-- पार्टी छान्नुहोस् --</option>
-            {getAvailableSamanupatikParties(i).map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        ))}
-        <button type="button" onClick={addSamanupatikParty} className="add-button">
-          + पार्टी थप्नुहोस्
-        </button>
-      </div>
-
-      <button type="submit" className="submit-button" disabled={isSubmitting}>
-        {isSubmitting ? "Submitting..." : "निर्वाचन सिर्जना गर्नुहोस्"}
-      </button>
-    </form>
+      </form>
+    </div>
   );
 }
