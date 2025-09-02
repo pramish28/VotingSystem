@@ -52,4 +52,7 @@ router.post('/:id/like', auth(), wrap(postController.likePost));
 router.post('/:id/dislike', auth(), wrap(postController.dislikePost));
 router.post('/:id/comment', auth(), wrap(postController.commentPost));
 
+router.delete('/:id/force', auth('admin'), wrap(postController.adminDeletePost));
+
+
 module.exports = router;

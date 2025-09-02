@@ -19,6 +19,7 @@ import ProfilePage from "./pages/ProfilePage";
 import DeleteCandidate from "./components/DeleteCandidate";
 import "./App.css";
 import DeleteElection from "./pages/DeleteElection";
+import DeleteApprovedPosts from "./pages/DeleteApprovedPosts";
 
 
 import VerifiedUsers from "./components/VerifiedUsers";
@@ -138,6 +139,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+           <Route
+             path="/delete-approved-posts"
+             element={
+             <ProtectedRoute allowedRole="admin">
+             <DeleteApprovedPosts />
+             </ProtectedRoute>
+        }
+       />
 
           {/* Auth-required (any role) */}
           <Route

@@ -199,6 +199,8 @@
 
 const Post = require('../models/Post');
 const User = require('../models/User');
+const fs = require('fs');
+const path = require('path');
 
 exports.createPost = async (req, res) => {
   try {
@@ -400,5 +402,33 @@ exports.getAllApprovedPosts = async (_req, res) => {
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch approved posts' });
+  }
+};
+
+// Admin delete any post (approved or pending) + broadcast probability update
+exports.adminDeletePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    // Best-effort: remove image file from disk (Uploads/)
+    if (post.image) {
+      try {
+        const p = path.join(__dirname, '..', 'Uploads', post.image);
+        fs.unlink(p, () => {}); // ignore callback errors
+      } catch (_) {}
+    }
+
+    await Post.deleteOne({ _id: id });
+
+    // Notify probability engine (approved post removal can change scores)
+    const io = req.app.get('io');
+    if (io) io.emit('probability:update', { scope: 'all' });
+
+    return res.json({ message: 'Post deleted' });
+  } catch (err) {
+    console.error('adminDeletePost error:', err);
+    return res.status(500).json({ error: 'Failed to delete post' });
   }
 };

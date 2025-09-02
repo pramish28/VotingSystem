@@ -40,6 +40,13 @@ const Settings = () => {
           <h3>Update Verified Student</h3>
           <p>Edit details of verified students.</p>
         </div>
+
+        <div className="setting-card delete-approved-posts" onClick={() => navigate("/delete-approved-posts")}>
+          <h3>Delete Approved Posts</h3>
+          <p>Remove approved posts from the feed.</p>
+         </div>
+
+
       </div>
     </div>
   );
