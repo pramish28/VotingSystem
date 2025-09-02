@@ -33,4 +33,7 @@ router.get('/me', auth(), authController.getMe);
 router.get('/user', auth(), authController.getMe);
 router.get('/voting-history', auth(), authController.getVotingHistory);
 
+router.post('/change-password', auth(), authController.changePassword);
+
+
 module.exports = router;

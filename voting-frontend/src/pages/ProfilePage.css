@@ -356,3 +356,73 @@
     padding: 15px;
   }
 }
+
+
+.change-password-section {
+  margin-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 16px;
+}
+
+.change-password-toggle {
+  background: #0f172a;
+  color: #e5e7eb;
+  border: 1px solid #1f2937;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.change-password-form {
+  display: grid;
+  gap: 12px;
+  max-width: 480px;
+}
+
+.change-password-form h3 {
+  margin: 0 0 4px;
+}
+
+.change-password-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+.change-password-form input {
+  background: #0b1220;
+  color: #e5e7eb;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.pwd-msg {
+  font-size: 0.9rem;
+  color: #f59e0b; /* warning-ish */
+}
+
+.pwd-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.cancel-btn {
+  background: #0b1220;
+  color: #cbd5e1;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.save-btn {
+  background: linear-gradient(90deg, #22c55e, #3b82f6);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}

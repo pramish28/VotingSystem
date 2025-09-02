@@ -277,4 +277,39 @@ const getVotingHistory = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getUsers, verifyUser, getMe, getVotingHistory };
+// ===== CHANGE PASSWORD (self) =====
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(userId); // password is included by default in your schema
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Current password is incorrect' });
+
+    const isSameAsBefore = await bcrypt.compare(newPassword, user.password);
+    if (isSameAsBefore) {
+      return res.status(400).json({ error: 'New password must be different from the current one' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    await user.save();
+
+    return res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    return res.status(500).json({ error: 'Server error', details: err.message });
+  }
+};
+
+
+module.exports = { register, login, getUsers, verifyUser, getMe, getVotingHistory, changePassword };
