@@ -312,4 +312,61 @@ const changePassword = async (req, res) => {
 };
 
 
-module.exports = { register, login, getUsers, verifyUser, getMe, getVotingHistory, changePassword };
+function generateTempPassword(len = 12) {
+  const crypto = require('crypto');
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+  const bytes = crypto.randomBytes(len);
+  let out = '';
+  for (let i = 0; i < len; i++) {
+    out += alphabet[bytes[i] % alphabet.length];
+  }
+  return out;
+}
+
+// Admin: reset a user's password and email it
+const adminResetPassword = async (req, res) => {
+  try {
+    const { userId, email } = req.body;
+    if (!userId && !email) {
+      return res.status(400).json({ error: 'Provide userId or email' });
+    }
+
+    const user = await User.findOne(userId ? { _id: userId } : { email });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const tempPassword = generateTempPassword(12);
+    const hashed = await bcrypt.hash(tempPassword, 12);
+    user.password = hashed;
+    await user.save();
+
+    // Email the new password
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: 'Your password has been reset',
+        text:
+`Hello ${user.name || 'User'},
+
+Your password has been reset by the administrator.
+Your new Temporary password: ${tempPassword}
+Please log in and change your password immediately from your profile.
+Keep this password secure and do not share it with anyone.
+
+Thanks,
+Election Portal Team`,
+      });
+    } catch (mailErr) {
+      console.error('Failed to send reset email:', mailErr);
+      return res.status(500).json({ error: 'Password updated, but failed to send email.' });
+    }
+
+    return res.json({ message: 'Password reset and emailed to user.' });
+  } catch (err) {
+    console.error('adminResetPassword error:', err);
+    return res.status(500).json({ error: 'Failed to reset password' });
+  }
+};
+
+
+module.exports = { register, login, getUsers, verifyUser, getMe, getVotingHistory, changePassword, adminResetPassword };

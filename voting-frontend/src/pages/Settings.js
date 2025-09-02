@@ -46,6 +46,11 @@ const Settings = () => {
           <p>Remove approved posts from the feed.</p>
          </div>
 
+         <div className="setting-card reset-user-password" onClick={() => navigate("/reset-user-password")}>
+           <h3>Reset User Password</h3>
+           <p>Send a new password to the user by email.</p>
+          </div>
+
 
       </div>
     </div>

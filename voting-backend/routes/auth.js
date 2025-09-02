@@ -34,6 +34,7 @@ router.get('/user', auth(), authController.getMe);
 router.get('/voting-history', auth(), authController.getVotingHistory);
 
 router.post('/change-password', auth(), authController.changePassword);
+router.post('/admin/reset-password', auth('admin'), authController.adminResetPassword);
 
 
 module.exports = router;

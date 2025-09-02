@@ -35,6 +35,8 @@ import CandidatesList from "./components/Candidates";
 import UpdateCandidate from "./pages/UpdateCandidate";
 import DeleteStudent from "./components/DeleteStudent";
 import UpdateStudent from "./components/UpdateStudent";
+import ResetUserPassword from "./pages/ResetUserPassword"; 
+
 
 // Progressive guard: if user exists, don't block on loading.
 const ProtectedRoute = ({ children, allowedRole }) => {
@@ -123,7 +125,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-                  <Route
+             <Route
           path="/delete-election"
           element={
             <ProtectedRoute allowedRole="admin">
@@ -131,6 +133,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+         <Route
+         path="/reset-user-password"
+         element={
+           <ProtectedRoute allowedRole="admin">
+              <ResetUserPassword />
+         </ProtectedRoute>
+        }
+       />
+
           <Route
             path="/create-election"
             element={
