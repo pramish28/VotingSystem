@@ -1,17 +1,24 @@
-/* ======= Simple, clean, beautiful ======= */
+/* ======= TU-polished theme ======= */
 :root{
-  --bg: #f9fafb;
+  --bg: #f7f8fb;
   --card: #ffffff;
-  --text: #111827;
-  --muted: #6b7280;
+  --text: #0f172a;
+  --muted: #64748b;
   --line: #e5e7eb;
-  --accent: #3b82f6;   /* blue */
-  --accent-700:#2563eb;
-  --radius: 12px;
+  --accent: #1E3A8A;      /* TU blue */
+  --accent-700:#153172;
+  --tu-red:#C41E3A;
+  --tu-gold:#F59E0B;
+  --radius: 14px;
   --radius-sm: 10px;
-  --shadow-sm: 0 2px 6px rgba(17,24,39,0.05);
-  --shadow:    0 8px 20px rgba(17,24,39,0.08);
+  --shadow-sm: 0 2px 8px rgba(15,23,42,.06);
+  --shadow:    0 10px 24px rgba(15,23,42,.10);
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
+}
+
+/* Localize box-sizing */
+.results-page, .results-page * , .results-page *::before, .results-page *::after{
+  box-sizing: border-box;
 }
 
 /* Page */
@@ -22,6 +29,7 @@
   color: var(--text);
   font-family: var(--font);
   background: var(--bg);
+  overflow-x: hidden;
 }
 
 /* Header */
@@ -39,19 +47,20 @@
 }
 .results-header h2{
   margin:0;
-  font-size:22px;
-  font-weight:700;
+  font-size:26px;
+  font-weight:800;
+  letter-spacing: .2px;
 }
 
-/* Refresh button – always visible */
+/* Refresh button */
 .refresh-btn{
   appearance:none;
   border:1px solid var(--accent) !important;
   background: var(--accent) !important;
   color:#fff !important;
   font:inherit;
-  padding:10px 14px;
-  border-radius:10px;
+  padding:10px 16px;
+  border-radius:12px;
   cursor:pointer;
   box-shadow: var(--shadow-sm);
   transition: background .15s ease, transform .1s ease, box-shadow .15s ease;
@@ -63,16 +72,17 @@
 }
 .refresh-btn:active{ transform: translateY(0); }
 .refresh-btn:focus-visible{
-  outline:3px solid rgba(59,130,246,.35);
+  outline:3px solid rgba(30,58,138,.25);
   outline-offset:2px;
 }
 
-/* Grid of elections */
+/* ======= One election per section ======= */
 .election-grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px,1fr));
-  gap:18px;
-  margin-top:8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  margin-top: 8px;
+  align-items: start;
 }
 
 /* Election card */
@@ -80,9 +90,21 @@
   background: var(--card);
   border:1px solid var(--line);
   border-radius: var(--radius);
-  padding:14px;
+  padding:18px;
   box-shadow: var(--shadow-sm);
   transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+  min-width: 0;
+  overflow: hidden;
+  isolation: isolate;
+  display: block !important;
+}
+.election-card::after{
+  content:"";
+  position:absolute;
+  inset:0 0 auto 0;
+  height:4px;
+  background: linear-gradient(90deg, var(--accent), var(--tu-red), var(--tu-gold));
+  opacity:.75;
 }
 .election-card:hover{
   box-shadow: var(--shadow);
@@ -96,13 +118,14 @@
   align-items:baseline;
   justify-content:space-between;
   gap:12px;
-  padding-bottom:10px;
-  margin-bottom:10px;
+  padding-bottom:12px;
+  margin-bottom:14px;
   border-bottom:1px dashed var(--line);
 }
 .election-title{
-  font-size:16px;
-  font-weight:700;
+  font-size:18px;
+  font-weight:800;
+  min-width:0;
 }
 .election-dates{
   font-size:12px;
@@ -110,87 +133,162 @@
   white-space:nowrap;
 }
 
-/* Position section */
-.position-card{ margin-top:14px; }
+/* ======= Position blocks (force vertical stacking) ======= */
+.election-card > .position-card{
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  clear: both !important;
+  margin-top: 16px;
+}
+.election-card > .position-card > *{ float:none !important; }
+
+.position-card + .position-card{
+  border-top: 1px dashed var(--line);
+  padding-top: 14px;
+  margin-top: 18px;
+}
+
+/* Position title */
 .position-title{
-  display:inline-flex;
+  display:flex !important;
   align-items:center;
-  gap:8px;
-  font-size:14px;
-  font-weight:700;
-  margin-bottom:8px;
+  gap:10px;
+  font-size:15px;
+  font-weight:800;
+  margin-bottom:10px;
+  color:#0f172a;
 }
 .position-title::before{
   content:"";
-  width:6px; height:6px; border-radius:999px;
+  width:8px; height:8px; border-radius:999px;
   background: var(--accent);
 }
 
+/* optional dot color per position */
+.position-card[data-pos="vicePresident"] .position-title::before{ background: var(--tu-red); }
+.position-card[data-pos="secretary"]     .position-title::before{ background: #10B981; }
+.position-card[data-pos="treasurer"]     .position-title::before{ background: #7C3AED; }
+.position-card[data-pos="members"]       .position-title::before{ background: #F59E0B; }
+
 /* Chart area */
 .chart-wrap{
-  height:260px;
+  position: relative;
+  width: 100% !important;
+  height:280px;
   border:1px solid var(--line);
-  background: var(--card);
+  background: linear-gradient(180deg,#ffffff 0%, #fafafa 100%);
   border-radius: var(--radius-sm);
-  padding:8px;
-  margin-bottom:8px;
+  padding:10px;
+  margin-bottom:10px;
+  overflow: hidden;
+  clear: both !important;
+}
+.chart-wrap canvas{
+  display:block;
+  width:100% !important;
+  height:100% !important;
 }
 
-/* Compact table under chart */
+/* Table */
 .mini-table{
-  width:100%;
+  width:100% !important;
   border-collapse:collapse;
   font-size:13px;
   background: var(--card);
   border:1px solid var(--line);
   border-radius: var(--radius-sm);
+  table-layout: fixed;
   overflow:hidden;
+  clear: both !important;
+  display: table !important;
+  box-shadow: inset 0 1px 0 rgba(15,23,42,.03);
 }
+.mini-table thead{ display: table-header-group; }
+.mini-table tbody{ display: table-row-group; }
+.mini-table tr{ display: table-row; }
+.mini-table th, .mini-table td{ display: table-cell; }
+
 .mini-table thead th{
   text-align:left;
   background:#f3f4f6;
-  padding:8px 10px;
-  font-weight:600;
+  padding:9px 10px;
+  font-weight:700;
+  letter-spacing:.2px;
+  color:#0f172a;
   border-bottom:1px solid var(--line);
 }
 .mini-table td{
-  padding:8px 10px;
+  padding:9px 10px;
   border-bottom:1px solid var(--line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.mini-table tbody tr:nth-child(odd){ background:#fcfcfd; }
 .mini-table tbody tr:last-child td{ border-bottom:none; }
 .mini-table tbody tr:hover{ background:#f9fafb; }
+
+/* Candidate cell: allow wrapping for long/Nepali names */
+.mini-table td.candidate-cell{
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Percent mini bar inside the table */
+.pct-cell{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+}
+.pct-track{
+  width:70px;
+  height:7px;
+  background:#eef2ff;
+  border-radius:999px;
+  overflow:hidden;
+  box-shadow: inset 0 0 0 1px rgba(30,58,138,.05);
+}
+.pct-fill{
+  height:100%;
+  background: linear-gradient(90deg, var(--accent), #60a5fa);
+  border-radius:999px;
+  transition: width .25s ease;
+}
+.pct-text{ min-width: 42px; text-align:right; }
 
 /* Messages */
 .error{
   color:#b00020;
   background:#fff1f2;
   border:1px solid #ffe4e6;
-  border-radius:10px;
-  padding:10px 12px;
-  margin-top:8px;
+  border-radius:12px;
+  padding:12px 14px;
+  margin-top:10px;
 }
 .empty-box{
   background:#fafafa;
   border:1px dashed var(--line);
-  border-radius:10px;
-  padding:12px;
+  border-radius:12px;
+  padding:14px;
   color: var(--muted);
 }
 
 /* Responsive */
 @media (max-width:520px){
-  .results-header h2{ font-size:20px; }
-  .election-grid{ grid-template-columns:1fr; }
-  .chart-wrap{ height:220px; }
+  .results-header h2{ font-size:22px; }
+  .chart-wrap{ height:240px; }
 }
 
 /* Probability chip */
 .prob-chip{
   display:inline-block;
   min-width: 64px;
-  padding: 4px 8px;
+  padding: 5px 8px;
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 12px;
   text-align: right;
   color: #0b4d2b;
@@ -202,4 +300,3 @@
   background:#f3f4f6;
   border-color:#e5e7eb;
 }
-

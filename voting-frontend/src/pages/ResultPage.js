@@ -11,6 +11,7 @@
 // } from 'chart.js';
 // import api from '../api';
 // import './ResultPage.css';
+// import { socket } from '../socket'; // 👈 NEW
 
 // ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
@@ -34,9 +35,7 @@
 //   return g;
 // }
 
-// /** If an election has zero votes (so backend returns empty list for some candidates),
-//  *  use the probability payload to make sure all candidates are shown with votes:0.
-//  */
+// /** ensure candidates with 0 votes still show (from probability payload) */
 // function mergeResultsWithProbabilities(results, probabilities) {
 //   const out = Array.isArray(results) ? [...results] : [];
 //   const have = new Set(out.map(r => `${r.position}|${r.candidateId}`));
@@ -62,7 +61,6 @@
 // function ElectionBox({ box }) {
 //   const grouped = useMemo(() => groupByPosition(box.results), [box.results]);
 
-//   // Map probability by position+candidateId for quick lookup
 //   const probMap = useMemo(() => {
 //     const m = {};
 //     for (const pos of POSITIONS) {
@@ -165,14 +163,13 @@
 // export default function ResultPage() {
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState('');
-//   const [electionBoxes, setElectionBoxes] = useState([]); // [{...}]
+//   const [electionBoxes, setElectionBoxes] = useState([]);
 
 //   const fetchOne = useCallback(async (election) => {
 //     const resultsData = await api
 //       .get(election?._id ? `/api/vote/results?electionId=${election._id}` : '/api/vote/results')
 //       .then(r => r.data || { electionId: '', results: [] });
 
-//     // Try probability; swallow 404 so one bad id doesn't break the page
 //     let probData = null;
 //     try {
 //       const p = await api.get(
@@ -180,14 +177,9 @@
 //       );
 //       probData = p.data;
 //     } catch (e) {
-//       if (e.response?.status !== 404) {
-//         // Only rethrow for non-404 (network, 500, etc.)
-//         throw e;
-//       }
-//       // For 404, leave probData as null so UI still renders results
+//       if (e.response?.status !== 404) throw e;
 //     }
 
-//     // Ensure we always have every candidate visible (even with 0 votes)
 //     const mergedResults = mergeResultsWithProbabilities(resultsData.results, probData);
 
 //     return {
@@ -195,8 +187,8 @@
 //       title: election?.electionTitle || probData?.title || '',
 //       startDate: election?.startDate || '',
 //       endDate: election?.endDate || '',
-//       results: mergedResults,      // merged
-//       probabilities: probData,     // can be null
+//       results: mergedResults,
+//       probabilities: probData,
 //     };
 //   }, []);
 
@@ -229,8 +221,28 @@
 
 //   useEffect(() => {
 //     loadData();
-//     const id = setInterval(loadData, 10000); // auto-refresh every 10s
+//     const id = setInterval(loadData, 10000);
 //     return () => clearInterval(id);
+//   }, [loadData]);
+
+//   // 👇 Listen for server push "probability:update"
+//   useEffect(() => {
+//     const onConnect = () => console.log('[socket] connected:', socket.id);
+//     const onDisconnect = () => console.log('[socket] disconnected');
+//     const onProbUpdate = (_payload) => {
+//       console.log('[socket] probability:update → reloading results');
+//       loadData();
+//     };
+
+//     socket.on('connect', onConnect);
+//     socket.on('disconnect', onDisconnect);
+//     socket.on('probability:update', onProbUpdate);
+
+//     return () => {
+//       socket.off('connect', onConnect);
+//       socket.off('disconnect', onDisconnect);
+//       socket.off('probability:update', onProbUpdate);
+//     };
 //   }, [loadData]);
 
 //   return (
@@ -271,7 +283,7 @@ import {
 } from 'chart.js';
 import api from '../api';
 import './ResultPage.css';
-import { socket } from '../socket'; // 👈 NEW
+import { socket } from '../socket';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
@@ -283,6 +295,22 @@ const POSITION_TITLES = {
   treasurer: 'Treasurer',
   members: 'Members',
 };
+
+/** TU-ish palettes per position (rotates if there are more candidates) */
+const POSITION_COLORS = {
+  president:     ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'], // TU blue
+  vicePresident: ['#C41E3A', '#F87171', '#FCA5A5', '#FECACA', '#FEE2E2'], // TU red
+  secretary:     ['#047857', '#10B981', '#34D399', '#6EE7B7', '#A7F3D0'], // emerald
+  treasurer:     ['#7C3AED', '#A78BFA', '#C4B5FD', '#DDD6FE', '#EDE9FE'], // violet
+  members:       ['#F59E0B', '#FBBF24', '#FCD34D', '#FDE68A', '#FEF3C7'], // amber
+};
+
+function colorsFor(pos, n) {
+  const pal = POSITION_COLORS[pos] || POSITION_COLORS.president;
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(pal[i % pal.length]);
+  return out;
+}
 
 function groupByPosition(results) {
   const g = {};
@@ -298,10 +326,10 @@ function groupByPosition(results) {
 /** ensure candidates with 0 votes still show (from probability payload) */
 function mergeResultsWithProbabilities(results, probabilities) {
   const out = Array.isArray(results) ? [...results] : [];
-  const have = new Set(out.map(r => `${r.position}|${r.candidateId}`));
+  const have = new Set(out.map((r) => `${r.position}|${r.candidateId}`));
   const pos = probabilities?.positions || {};
   for (const p of POSITIONS) {
-    for (const c of (pos[p] || [])) {
+    for (const c of pos[p] || []) {
       const key = `${p}|${c.candidateId}`;
       if (!have.has(key)) {
         out.push({
@@ -324,7 +352,7 @@ function ElectionBox({ box }) {
   const probMap = useMemo(() => {
     const m = {};
     for (const pos of POSITIONS) {
-      for (const r of (box.probabilities?.positions?.[pos] || [])) {
+      for (const r of box.probabilities?.positions?.[pos] || []) {
         m[`${pos}|${r.candidateId}`] = r.probability;
       }
     }
@@ -345,9 +373,13 @@ function ElectionBox({ box }) {
         const rows = grouped[pos] || [];
         if (!rows.length) return null;
 
-        const labels = rows.map((r) => `${r.name}${r.party ? ` (${r.party})` : ''}`);
+        const fullLabels = rows.map((r) => `${r.name}${r.party ? ` (${r.party})` : ''}`);
+        // Trim very long labels to keep layout tidy; tooltip shows full text.
+        const labels = fullLabels.map((t) => (t.length > 26 ? t.slice(0, 23) + '…' : t));
         const data = rows.map((r) => r.votes);
         const perc = rows.map((r) => r.percentage);
+
+        const bg = colorsFor(pos, rows.length);
 
         const chartData = {
           labels,
@@ -355,6 +387,15 @@ function ElectionBox({ box }) {
             {
               label: 'Votes',
               data,
+              backgroundColor: bg,
+              borderColor: bg,
+              borderWidth: 1.25,
+              borderRadius: 8,
+              borderSkipped: false,
+              barPercentage: 0.8,
+              categoryPercentage: 0.7,
+              maxBarThickness: 44,
+              hoverBackgroundColor: bg,
             },
           ],
         };
@@ -362,10 +403,20 @@ function ElectionBox({ box }) {
         const options = {
           responsive: true,
           maintainAspectRatio: false,
+          animation: { duration: 260 },
           plugins: {
             legend: { display: false },
             tooltip: {
+              backgroundColor: 'rgba(17,24,39,0.92)',
+              titleColor: '#fff',
+              bodyColor: '#e5e7eb',
+              displayColors: false,
+              padding: 10,
               callbacks: {
+                title: (items) => {
+                  const i = items?.[0]?.dataIndex ?? 0;
+                  return fullLabels[i] ?? '';
+                },
                 label: (ctx) => {
                   const v = ctx.raw ?? 0;
                   const i = ctx.dataIndex;
@@ -374,15 +425,23 @@ function ElectionBox({ box }) {
                 },
               },
             },
-            title: { display: false },
           },
+          layout: { padding: { left: 4, right: 4, top: 4, bottom: 4 } },
           scales: {
-            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: {
+              ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, color: '#6b7280' },
+              grid: { display: false },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0, color: '#6b7280' },
+              grid: { color: 'rgba(17,24,39,0.06)' },
+            },
           },
         };
 
         return (
-          <div className="position-card" key={pos}>
+          <div className="position-card" key={pos} data-pos={pos}>
             <div className="position-title">{POSITION_TITLES[pos]}</div>
             <div className="chart-wrap">
               <Bar data={chartData} options={options} />
@@ -394,8 +453,8 @@ function ElectionBox({ box }) {
                   <th style={{ width: 28 }}>#</th>
                   <th>Candidate</th>
                   <th style={{ textAlign: 'right', width: 80 }}>Votes</th>
-                  <th style={{ textAlign: 'right', width: 70 }}>%</th>
-                  <th style={{ textAlign: 'right', width: 90 }}>Prob %</th>
+                  <th style={{ textAlign: 'right', width: 120 }}>Share</th>
+                  <th style={{ textAlign: 'right', width: 100 }}>Prob %</th>
                 </tr>
               </thead>
               <tbody>
@@ -404,10 +463,24 @@ function ElectionBox({ box }) {
                   return (
                     <tr key={r.candidateId}>
                       <td>{idx + 1}</td>
-                      <td>{r.name}{r.party ? ` (${r.party})` : ''}</td>
+                      <td className="candidate-cell">
+                        {r.name}{r.party ? ` (${r.party})` : ''}
+                      </td>
                       <td style={{ textAlign: 'right' }}>{r.votes}</td>
-                      <td style={{ textAlign: 'right' }}>{r.percentage}%</td>
-                      <td style={{ textAlign: 'right' }}>{prob != null ? `${prob}%` : '—'}</td>
+
+                      {/* pretty percent bar + text */}
+                      <td className="pct-cell">
+                        <div className="pct-track">
+                          <div className="pct-fill" style={{ width: `${r.percentage}%` }} />
+                        </div>
+                        <span className="pct-text">{r.percentage}%</span>
+                      </td>
+
+                      <td style={{ textAlign: 'right' }}>
+                        <span className={prob != null ? 'prob-chip' : 'prob-chip muted'}>
+                          {prob != null ? `${prob}%` : '—'}
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -427,20 +500,29 @@ export default function ResultPage() {
 
   const fetchOne = useCallback(async (election) => {
     const resultsData = await api
-      .get(election?._id ? `/api/vote/results?electionId=${election._id}` : '/api/vote/results')
-      .then(r => r.data || { electionId: '', results: [] });
+      .get(
+        election?._id
+          ? `/api/vote/results?electionId=${election._id}`
+          : '/api/vote/results'
+      )
+      .then((r) => r.data || { electionId: '', results: [] });
 
     let probData = null;
     try {
       const p = await api.get(
-        election?._id ? `/api/election/${election._id}/probability` : '/api/election/probability'
+        election?._id
+          ? `/api/election/${election._id}/probability`
+          : '/api/election/probability'
       );
       probData = p.data;
     } catch (e) {
       if (e.response?.status !== 404) throw e;
     }
 
-    const mergedResults = mergeResultsWithProbabilities(resultsData.results, probData);
+    const mergedResults = mergeResultsWithProbabilities(
+      resultsData.results,
+      probData
+    );
 
     return {
       electionId: resultsData.electionId || election?._id || '',
@@ -454,7 +536,8 @@ export default function ResultPage() {
 
   const loadData = useCallback(async () => {
     try {
-      setLoading(true); setError('');
+      setLoading(true);
+      setError('');
       let elections = [];
       try {
         const list = await api.get('/api/election');
@@ -485,11 +568,10 @@ export default function ResultPage() {
     return () => clearInterval(id);
   }, [loadData]);
 
-  // 👇 Listen for server push "probability:update"
   useEffect(() => {
     const onConnect = () => console.log('[socket] connected:', socket.id);
     const onDisconnect = () => console.log('[socket] disconnected');
-    const onProbUpdate = (_payload) => {
+    const onProbUpdate = () => {
       console.log('[socket] probability:update → reloading results');
       loadData();
     };
@@ -522,10 +604,14 @@ export default function ResultPage() {
       {!loading && !error && electionBoxes.length > 0 && (
         <div className="election-grid">
           {electionBoxes.map((box) => (
-            <ElectionBox key={box.electionId || `${box.title}-${box.startDate}`} box={box} />
+            <ElectionBox
+              key={box.electionId || `${box.title}-${box.startDate}`}
+              box={box}
+            />
           ))}
         </div>
       )}
     </div>
   );
 }
+
