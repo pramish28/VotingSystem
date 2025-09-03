@@ -5,7 +5,12 @@ const {
   confirmVote,
   confirmAllVotes,
   getResults,
-  deleteMyVotesForElection, // optional helper
+  deleteMyVotesForElection, 
+  exportResultsPdf,
+  exportAllElectionsPdf,
+  shareResultsSummaryPdf,
+
+  // optional helper
 } = require('../controllers/voteController');
 
 router.post('/', submitVote);
@@ -15,5 +20,12 @@ router.get('/results', getResults);
 
 // Optional: reset my votes for one election (useful for testing)
 router.delete('/by-election/:electionId', auth, deleteMyVotesForElection);
+
+
+router.get('/results/export.pdf', auth('admin'), exportResultsPdf);
+router.get('/results/export-all.pdf', auth('admin'), exportAllElectionsPdf);
+router.post('/results/share-summary-pdf', auth('admin'), shareResultsSummaryPdf);
+
+
 
 module.exports = router;

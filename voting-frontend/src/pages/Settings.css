@@ -110,3 +110,70 @@
         gap:20px;
 }
 }
+
+/* Export & Share Votes panel */
+.export-share-panel {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  padding: 20px;
+  margin-bottom: 28px;
+  border: 1px solid #eef2f7;
+}
+
+.esp-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.esp-row h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #2c3e50;
+}
+
+.esp-hint { color: #6c757d; font-size: 0.9rem; }
+
+.esp-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.esp-label { display: flex; flex-direction: column; gap: 6px; }
+.esp-select {
+  min-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.esp-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.esp-btn {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform .05s ease, box-shadow .2s ease, background .2s ease;
+}
+.esp-btn:active { transform: translateY(1px); }
+.esp-btn.primary { background: #2563eb; color: #fff; border-color: #1e40af; }
+.esp-btn.primary:hover { background: #1d4ed8; }
+.esp-btn.success { background: #10b981; color: #fff; border-color: #059669; }
+.esp-btn.success:hover { background: #0ea5a5; }
+.esp-btn.ghost { background: #f3f4f6; color: #111827; border-color: #e5e7eb; }
+.esp-btn.ghost:hover { background: #e5e7eb; }
+
+.export-results:hover { background: #e3f2fd; color: #0d47a1; }
+.share-results:hover  { background: #e8f5e9; color: #1b5e20; }
+
+@media (max-width: 768px) {
+  .esp-select { min-width: 100%; }
+}
