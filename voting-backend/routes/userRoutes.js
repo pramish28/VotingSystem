@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const nodemailer=require('nodemailer');
 const User = require('../models/User');
+const Activity = require('../models/Activity');
 
 const activityController=require('../controllers/userController');
 
@@ -38,6 +39,14 @@ router.post('/approve-student', async (req, res) => {
     student.isVerified = true;
     student.verifiedAt=new Date(); //set the current time
     await student.save();
+    
+    // Log activity
+    const activity = new Activity({
+      user: "Admin",
+      type: "student_verified",
+      message:` Verified student ${student.name} (${student.email})`,
+    });
+    await activity.save();
 
     // Setup nodemailer transporter
     const transporter = nodemailer.createTransport({
@@ -105,7 +114,30 @@ router.delete('/reject-student/:id', async (req, res) => {
     };
 
     // Send rejection email before deletion
-    await transporter.sendMail(mailOptions);
+//     await transporter.sendMail(mailOptions);
+
+//     // Delete student after sending the email
+//     await User.findByIdAndDelete(studentId);
+
+//     return res.json({ success: true, message: 'Student rejected, email sent, and data deleted' });
+//   } catch (err) {
+//     console.error('Rejection error:', err);
+//     return res.status(500).json({ error: 'Server error' });
+//   }
+// });
+try{
+ await transporter.sendMail(mailOptions);
+    }catch(err){
+      console.error('Error sending rejection email:', err);
+      
+    }
+    // Log activity for rejection
+    const activity = new Activity({
+      user: "Admin",
+      type: "student_rejected",
+      message: `Rejected student ${student.name} (${student.email})`,
+    });
+    await activity.save();
 
     // Delete student after sending the email
     await User.findByIdAndDelete(studentId);
@@ -113,8 +145,8 @@ router.delete('/reject-student/:id', async (req, res) => {
     return res.json({ success: true, message: 'Student rejected, email sent, and data deleted' });
   } catch (err) {
     console.error('Rejection error:', err);
-    return res.status(500).json({ error: 'Server error' });
-  }
+    return res.status(500).json({ error: 'Server error'});
+}
 });
 
 //testing route

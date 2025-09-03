@@ -541,7 +541,7 @@ const AdminDashboard = () => {
               {recentActivities.length === 0 ? (
               <p>No recent activities yet.</p>
               ) : (
-              recentActivities.slice(0, 5).map((a) => (
+              recentActivities.slice(0, 8).map((a) => (
               <div key={a._id} className={`activity-item ${a.action}`}>
               <div className="activity-icon">
                 {a.action === "update" && "✏"}

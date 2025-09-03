@@ -6,6 +6,7 @@ const Vote = require('../models/Vote'); // Added missing import
 const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
+const Activity = require('../models/Activity');
 
 // ===== File Upload Setup =====
 const storage = multer.diskStorage({
@@ -136,6 +137,13 @@ const register = (req, res) => {
       });
 
       await newUser.save();
+      // ✅ Log activity
+      const activity = new Activity({
+        user: newUser.name,
+        type: "user_registered",
+        message: `New user registered: ${newUser.name} (${newUser.email})`,
+      });
+      await activity.save();
       res.status(201).json({ message: 'Registration successful. Awaiting verification.' });
     } catch (error) {
       console.error('Register error:', error.message);
