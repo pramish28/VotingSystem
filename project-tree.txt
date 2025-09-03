@@ -10,6 +10,7 @@
     |-- auth.js
     |-- upload.js
   |-- models
+    |-- Activity.js
     |-- Candidate.js
     |-- Election.js
     |-- Notification.js
@@ -36,6 +37,7 @@
   |-- public
   |-- assets
   |-- src
+    |--Image
     |-- api.js
     |-- App.js
     |-- App.css
@@ -48,12 +50,18 @@
       |-- Candidates.css
       |-- DeleteCandidate.js
       |-- DeleteCandidate.css
+      |-- DeleteStudent.js
+      |-- DeleteStudent.css
+      |-- EditStudent.js
+      |-- EditStudent.css
       |-- ElectionForm.js
       |-- ElectionForm.css
       |-- Post.js
       |-- Post.css
       |-- ProfileCard.js
       |-- ProfileCard.css
+      |-- UpdateStudent.js
+      |-- UpdateStudent.css
       |-- VerifiedUsers.js
       |-- VerifiedUsers.css
     |-- index.js
@@ -71,6 +79,10 @@
       |-- ApprovePosts.css
       |-- CreatePost.js
       |-- CreatePost.css
+      |-- DeleteApprovedPosts.js
+      |-- DeleteApprovedPosts.css
+      |-- DeleteElection.js
+      |-- DeleteElection.css
       |-- ElectionNews.js
       |-- ElectionNews.css
       |-- Login.js
@@ -83,11 +95,17 @@
       |-- ProfilePage.css
       |-- Register.js
       |-- Register.css
+      |-- ResetUserPassword.js
+      |-- ResetUserPassword.css
       |-- ResultPage.js
       |-- ResultPage.css
+      |-- Settings.js
+      |-- Settings.css
       |-- StudentDashboard.js
       |-- StudentDashboard.css
       |-- Settings.js
       |-- Settings.css
+      |-- UpdateCandidate.js
+      |-- UpdateCandidate.css
       |-- VotingPage.js
       |-- VotingPage.css
