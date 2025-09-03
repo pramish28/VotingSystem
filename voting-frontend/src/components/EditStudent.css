@@ -1,0 +1,96 @@
+.es-page{
+  max-width: 980px;
+  margin: 24px auto 40px;
+  padding: 0 16px;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  color:#0f172a;
+}
+
+.es-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:10px;
+  margin-bottom:14px;
+  border-bottom:1px dashed #e5e7eb;
+}
+.es-header h2{ margin:0; font-size:22px; font-weight:800; }
+
+.es-btn{
+  appearance:none;
+  border:1px solid #1E3A8A;
+  background:#1E3A8A;
+  color:#fff;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+.es-btn:hover{ background:#153172; }
+.es-btn.es-light{
+  border-color:#e5e7eb;
+  background:#fff;
+  color:#0f172a;
+}
+.es-btn.es-light:hover{ background:#f9fafb; }
+
+.es-card{
+  display:grid;
+  grid-template-columns: 260px 1fr;
+  gap:18px;
+  align-items:start;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  padding:16px;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(15,23,42,.06);
+}
+
+.es-photo{
+  width: 100%;
+  max-width: 220px;     /* <= keep photo controlled */
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  display:block;
+  margin-bottom:10px;
+}
+.es-meta{ font-size:14px; color:#475569; display:grid; gap:4px; }
+
+.es-form .es-row{
+  display:grid;
+  gap:6px;
+  margin-bottom:10px;
+}
+.es-form label{ font-size:12px; color:#64748b; }
+.es-form input{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:9px 10px;
+  font: inherit;
+  width:100%;
+}
+.es-form input:focus{
+  outline:3px solid rgba(59,130,246,.25);
+  border-color:#93c5fd;
+}
+
+.es-actions{ display:flex; justify-content:flex-end; margin-top:12px; }
+
+.es-loading{
+  display:grid; place-items:center;
+  border:1px dashed #e5e7eb; border-radius:14px; padding:20px;
+  color:#64748b; background:#fafafa;
+}
+.es-spinner{
+  width:28px; height:28px; border:3px solid #e5e7eb; border-top-color:#1E3A8A;
+  border-radius:999px; animation: es-spin .9s linear infinite; margin-bottom:8px;
+}
+@keyframes es-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 820px){
+  .es-card{ grid-template-columns: 1fr; }
+  .es-photo{ max-width: 180px; }
+}

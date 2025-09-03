@@ -36,6 +36,7 @@ import UpdateCandidate from "./pages/UpdateCandidate";
 import DeleteStudent from "./components/DeleteStudent";
 import UpdateStudent from "./components/UpdateStudent";
 import ResetUserPassword from "./pages/ResetUserPassword"; 
+import EditStudent from "./components/EditStudent";
 
 
 // Progressive guard: if user exists, don't block on loading.
@@ -83,7 +84,7 @@ function App() {
           <Route path="/create-post" element={<CreatePost />} />
 
           <Route path="/candidates" element={<CandidatesList />} />
-
+          <Route path="/edit-student/:id" element={<EditStudent />} />
           {/* Admin-only */}
           <Route
             path="/verified-users"
