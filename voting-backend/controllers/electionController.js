@@ -29,9 +29,10 @@ function shapeElectionCandidates(election) {
     const party = section.partyName || '';
     const c = section.candidates || {};
 
+    // single-seat posts — include if subdoc exists (has _id), even if name/photo missing
     for (const k of ['president', 'vicePresident', 'secretary', 'treasurer']) {
       const slot = c[k];
-      if (slot && (slot.name || slot.photo) && slot._id) {
+      if (slot && slot._id) {
         positions[k].push({
           candidateId: String(slot._id),
           candidateUserId: slot.candidateUserId ? String(slot.candidateUserId) : null,
@@ -41,8 +42,10 @@ function shapeElectionCandidates(election) {
         });
       }
     }
+
+    // members — include if subdoc exists
     for (const m of c.members || []) {
-      if ((m?.name || m?.photo) && m?._id) {
+      if (m && m._id) {
         positions.members.push({
           candidateId: String(m._id),
           candidateUserId: m.candidateUserId ? String(m.candidateUserId) : null,
@@ -54,8 +57,9 @@ function shapeElectionCandidates(election) {
     }
   }
 
+  // independents — include if subdoc exists and post is set
   for (const ind of (election.independents || [])) {
-    if ((ind?.name || ind?.photo) && ind?._id && ind?.post) {
+    if (ind && ind._id && ind.post) {
       const k = ind.post;
       if (positions[k]) {
         positions[k].push({
@@ -264,7 +268,7 @@ const createElection = async (req, res) => {
 
       // members (array up to 12)
       const members = Array.isArray(candidates.members) ? candidates.members : [];
-      const newMembers = [];
+      const newMembers = []
       for (let mIdx = 0; mIdx < members.length; mIdx++) {
         const m = members[mIdx] || { name: '' };
         const memberFileKey = `partySections[${index}][candidates][members][${mIdx}][photo]`;
@@ -541,7 +545,7 @@ function accumulateUniqueWeightedReactors(posts, cutoff, before) {
   return score;
 }
 
-// === REPLACE your computeElectionProbabilities with this version ===
+// === computeElectionProbabilities (kept; only addEntry relaxed) ===
 async function computeElectionProbabilities(election, trials = 2000) {
   const positions = { president: [], vicePresident: [], secretary: [], treasurer: [], members: [] };
   const pushC = (pos, obj) => { if (positions[pos]) positions[pos].push(obj); };
@@ -579,9 +583,10 @@ async function computeElectionProbabilities(election, trials = 2000) {
     return u || null;
   }
 
-  // collect candidates; ensure every entry tries to resolve a user even if candidateUserId is missing
+  // include ANY valid embedded subdoc (has _id), even if name/photo are missing
   async function addEntry(pos, raw) {
-    if (!(raw?._id) || (!raw.name && !raw.photo)) return;
+    if (!raw || !raw._id) return;
+
     const entry = {
       candidateId: String(raw._id),
       candidateUserId: raw.candidateUserId ? String(raw.candidateUserId) : null,
@@ -607,7 +612,7 @@ async function computeElectionProbabilities(election, trials = 2000) {
     }
   }
   for (const ind of election.independents || []) {
-    if (ind?.post && (ind?.name || ind?.photo)) {
+    if (ind?.post && (ind?.name || ind?.photo || ind?._id)) {
       await addEntry(ind.post, { ...ind, party: 'Independent' });
     }
   }
@@ -649,17 +654,17 @@ async function computeElectionProbabilities(election, trials = 2000) {
   const preCut = new Date(election.startDate || election.createdAt || Date.now());
 
   // decay + unique reactors
-  function decayFactor(createdAt) {
+  function decayFactorLocal(createdAt) {
     const now = Date.now();
     const ageDays = Math.max(0, (now - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
     return Math.pow(0.5, ageDays / SOCIAL_HALFLIFE_DAYS);
   }
-  function accumulateUniqueWeightedReactors(userPosts, cutoff, before) {
+  function accumulateUniqueWeightedReactorsLocal(userPosts, cutoff, before) {
     const posMap = new Map(), negMap = new Map();
     for (const p of userPosts) {
       const inWindow = before ? (new Date(p.createdAt) < cutoff) : (new Date(p.createdAt) >= cutoff);
       if (!inWindow) continue;
-      const w = decayFactor(p.createdAt);
+      const w = decayFactorLocal(p.createdAt);
 
       const likers     = Array.isArray(p.likes)    ? p.likes.map(String) : [];
       const dislikers  = Array.isArray(p.dislikes) ? p.dislikes.map(String) : [];
@@ -680,8 +685,8 @@ async function computeElectionProbabilities(election, trials = 2000) {
   const preScoreByUser = new Map(), postScoreByUser = new Map();
   for (const uid of userIds) {
     const up = posts.filter(p => String(p.userId) === String(uid));
-    preScoreByUser.set(String(uid),  accumulateUniqueWeightedReactors(up, preCut, true));
-    postScoreByUser.set(String(uid), accumulateUniqueWeightedReactors(up, preCut, false));
+    preScoreByUser.set(String(uid),  accumulateUniqueWeightedReactorsLocal(up, preCut, true));
+    postScoreByUser.set(String(uid), accumulateUniqueWeightedReactorsLocal(up, preCut, false));
   }
 
   const out = { electionId: String(election._id), title: election.electionTitle, positions: {} };
@@ -876,9 +881,6 @@ const deleteElectionById = async (req, res) => {
   }
 };
 
-
-
-
 module.exports = {
   getCandidates,
   getElectionNews,
@@ -890,8 +892,6 @@ module.exports = {
   getAvailableElections,
   listAllElections,
   listVerifiedStudents,
-
-  // NEW:
   getElectionProbabilityById,
   getCurrentElectionProbability,
   deleteElectionById,
