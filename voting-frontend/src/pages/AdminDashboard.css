@@ -206,7 +206,7 @@ button { font: inherit; }
 }
 
 /* Quick Actions */
-.actions{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.actions{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 120px; }
 .action-btn{
   border: none; cursor: pointer; color: #fff; font-weight: 800;
   padding: 14px 16px; border-radius: 14px;
