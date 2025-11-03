@@ -1,16 +1,4 @@
 
-// const express = require('express');
-// const router = express.Router();
-
-// // ✅ import the controller function
-// const { getElectionStats } = require('../controllers/electionController');
-
-// // Student dashboard stats passthrough
-// router.get('/student-stats', getElectionStats);
-
-// module.exports = router;
-
-
 // voting-backend/routes/dashboardRoutes.js
 const express = require('express');
 const router = express.Router();

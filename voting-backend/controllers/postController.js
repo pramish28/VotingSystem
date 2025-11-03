@@ -200,15 +200,6 @@ exports.getPendingPosts = async (req, res) => {
   }
 };
 
-// exports.rejectPost = async (req, res) => {
-//   try {
-//     await Post.findByIdAndDelete(req.params.id);
-//     res.json({ message: 'Post rejected and deleted' });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Failed to reject post' });
-//   }
-// };
-
 exports.rejectPost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);

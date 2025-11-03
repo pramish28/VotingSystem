@@ -113,18 +113,6 @@ router.delete('/reject-student/:id', async (req, res) => {
       `,
     };
 
-    // Send rejection email before deletion
-//     await transporter.sendMail(mailOptions);
-
-//     // Delete student after sending the email
-//     await User.findByIdAndDelete(studentId);
-
-//     return res.json({ success: true, message: 'Student rejected, email sent, and data deleted' });
-//   } catch (err) {
-//     console.error('Rejection error:', err);
-//     return res.status(500).json({ error: 'Server error' });
-//   }
-// });
 try{
  await transporter.sendMail(mailOptions);
     }catch(err){
@@ -156,4 +144,3 @@ router.get('/test', async (req, res) => {
 });
 
 module.exports = router;
-// This code defines a route for getting verified users in the voting system backend.
